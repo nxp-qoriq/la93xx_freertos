@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright 2021 NXP
+ * Copyright 2021-2022 NXP
  */
 #ifndef __RFIC_CORE_H
 #define __RFIC_CORE_H
@@ -101,4 +101,5 @@ void vRficSwCmdIrq( RficDevice_t *pRficDev );
 BaseType_t xRficPostLocalSwCmd( RficDevice_t *pRficDev,
 				rf_sw_cmd_desc_t *pSwCmdDesc );
 int32_t iRficSelectDspiSlave( RficDevice_t *pRficDev , RficDspiSlv_t eSlaveDev );
+BaseType_t xHandleSwCmd( RficDevice_t *pRficDev, rf_sw_cmd_desc_t *pSwCmdDesc );
 #endif  //__RFIC_CORE_H

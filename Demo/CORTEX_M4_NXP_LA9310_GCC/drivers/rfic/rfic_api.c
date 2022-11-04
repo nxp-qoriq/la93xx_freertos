@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright 2021 NXP
+ * Copyright 2021-2022 NXP
  */
 #include "rfic_api.h"
 #include "rfic_core.h"
@@ -38,9 +38,13 @@ RficResp_t xRficSetBand( RficHandle_t handle, RficBand_t band )
 
     CmdData->band = band;
 
-    if( pdPASS != xRficPostLocalSwCmd( pRficDev, &SwCmd ))
-	return RFIC_ERROR;
-
+    #ifdef TURN_ON_STANDALONE_MODE
+	    xHandleSwCmd( pRficDev, &SwCmd);
+    #else
+	    if( pdPASS != xRficPostLocalSwCmd( pRficDev, &SwCmd ))
+	        return RFIC_ERROR;
+    #endif
+ 
     if( RF_SW_CMD_RESULT_OK != SwCmd.result )
 	return RFIC_ERROR;
 
@@ -89,9 +93,13 @@ RficResp_t xRficAdjustPllFreq( RficHandle_t handle, uint32_t freq_in_khz )
     CmdData = (struct sw_cmddata_adjust_pll_freq *) &SwCmd.data[0];
     CmdData->freq_khz = freq_in_khz;
 
-    if( pdPASS != xRficPostLocalSwCmd( pRficDev, &SwCmd ))
-        return RFIC_ERROR;
-
+    #ifdef TURN_ON_STANDALONE_MODE
+	    xHandleSwCmd( pRficDev, &SwCmd);
+    #else
+	    if( pdPASS != xRficPostLocalSwCmd( pRficDev, &SwCmd ))
+	        return RFIC_ERROR;
+    #endif
+ 
     if( RF_SW_CMD_RESULT_OK != SwCmd.result )
         return RFIC_ERROR;
 
@@ -108,9 +116,13 @@ RficResp_t xRficFastCal( RficHandle_t handle)
     SwCmd.cmd = RF_SW_CMD_FAST_CALIB;
     SwCmd.flags = RF_SW_CMD_LOCAL;
 
-    if( pdPASS != xRficPostLocalSwCmd( pRficDev, &SwCmd ))
-	    return RFIC_ERROR;
-
+    #ifdef TURN_ON_STANDALONE_MODE
+	    xHandleSwCmd( pRficDev, &SwCmd);
+    #else
+	    if( pdPASS != xRficPostLocalSwCmd( pRficDev, &SwCmd ))
+	        return RFIC_ERROR;
+    #endif
+ 
     if( RF_SW_CMD_RESULT_OK != SwCmd.result )
 	    return RFIC_ERROR;
 
@@ -131,9 +143,13 @@ RficResp_t xRficLnaCtrl(RficHandle_t handle, bool_t state)
 
     CmdData->state = state;
 
-    if( pdPASS != xRficPostLocalSwCmd( pRficDev, &SwCmd ))
-        return RFIC_ERROR;
-
+    #ifdef TURN_ON_STANDALONE_MODE
+	    xHandleSwCmd( pRficDev, &SwCmd);
+    #else
+	    if( pdPASS != xRficPostLocalSwCmd( pRficDev, &SwCmd ))
+	        return RFIC_ERROR;
+    #endif
+ 
     if( RF_SW_CMD_RESULT_OK != SwCmd.result )
         return RFIC_ERROR;
 
@@ -158,9 +174,13 @@ RficResp_t xRficDemodGainCtrl(RficHandle_t handle, uint8_t rf_attn, uint8_t bb_g
     CmdData->bb_gain = bb_gain;
     CmdData->rf_attn = rf_attn;
 
-    if( pdPASS != xRficPostLocalSwCmd( pRficDev, &SwCmd ))
-        return RFIC_ERROR;
-
+    #ifdef TURN_ON_STANDALONE_MODE
+	    xHandleSwCmd( pRficDev, &SwCmd);
+    #else
+	    if( pdPASS != xRficPostLocalSwCmd( pRficDev, &SwCmd ))
+	        return RFIC_ERROR;
+    #endif
+ 
     if( RF_SW_CMD_RESULT_OK != SwCmd.result )
         return RFIC_ERROR;
 
@@ -185,11 +205,72 @@ RficResp_t xRficAdrfGainCtrl(RficHandle_t handle, uint8_t gain)
     CmdData->dac1_val = RficVgaGainTable[gain][0];
     CmdData->dac2_val = RficVgaGainTable[gain][1];
 
-    if( pdPASS != xRficPostLocalSwCmd( pRficDev, &SwCmd ))
-        return RFIC_ERROR;
+    #ifdef TURN_ON_STANDALONE_MODE
+	    xHandleSwCmd( pRficDev, &SwCmd);
+    #else
+	    if( pdPASS != xRficPostLocalSwCmd( pRficDev, &SwCmd ))
+	        return RFIC_ERROR;
+    #endif
 
     if( RF_SW_CMD_RESULT_OK != SwCmd.result )
         return RFIC_ERROR;
 
     return RFIC_SUCCESS;
 }
+
+#ifdef TURN_ON_STANDALONE_MODE
+RficResp_t xRficIQDump( RficHandle_t handle, uint32_t size )
+{
+    RficDevice_t *pRficDev = (RficDevice_t *)handle;
+    rf_sw_cmd_desc_t SwCmd;
+    struct sw_cmddata_dump_iq *CmdData;
+    volatile uint8_t  *tcm_ptr;
+
+    memset( &SwCmd, 0, sizeof( rf_sw_cmd_desc_t ));
+    SwCmd.cmd = RF_SW_CMD_DUMP_IQ_DATA;
+    SwCmd.flags = RF_SW_CMD_LOCAL;
+    CmdData = (struct sw_cmddata_dump_iq *) &SwCmd.data[0];
+
+    CmdData->addr = 0x20001000;
+    CmdData->size = size;
+	xHandleSwCmd( pRficDev, &SwCmd);
+
+    tcm_ptr = (uint8_t * ) (( uint32_t ) CmdData->addr);
+    {
+        uint32_t ulIndex;
+
+        for( ulIndex = 0; ulIndex < size * 4096; ++ulIndex )
+        {
+            PRINTF( "%02x ", tcm_ptr[ ulIndex ] );
+
+            if( ( ulIndex + 1 ) % 16 == 0 )
+            {
+                PRINTF( "\r\n" );
+            }
+        }
+
+        PRINTF( "\n" );
+        PRINTF( "\r\n" );
+    }
+    if( RF_SW_CMD_RESULT_OK != SwCmd.result )
+	return RFIC_ERROR;
+
+    return RFIC_SUCCESS;
+}
+
+void xRficGetRFConf( RficHandle_t handle )
+{
+    RficDevice_t *pRficDev = (RficDevice_t *)handle;
+
+    PRINTF( "Configured band is %d \r\n", pRficDev->pRfHif->rf_priv_mdata.band);
+    PRINTF( "Configured freq(khz) is %d \r\n", pRficDev->pRfHif->rf_priv_mdata.freq_khz);
+    PRINTF( "Configured bandwidth is %d \r\n", pRficDev->pRfHif->rf_priv_mdata.bw);
+    PRINTF( "Configured lna state is %d \r\n", pRficDev->pRfHif->rf_priv_mdata.lna_state);
+    PRINTF( "Configured gain(db) is %d \r\n", pRficDev->pRfHif->rf_priv_mdata.gain_in_db);
+    PRINTF( "Configured demod rf attn is %d \r\n", pRficDev->pRfHif->rf_priv_mdata.demod_rf_attn);
+    PRINTF( "Configured demod bb gain is %d \r\n", pRficDev->pRfHif->rf_priv_mdata.demod_bb_gain);
+    PRINTF( "Configured vga dac1 is %d \r\n", pRficDev->pRfHif->rf_priv_mdata.vga_dac1_val);
+    PRINTF( "Configured vga dac2 is %d \r\n", pRficDev->pRfHif->rf_priv_mdata.vga_dac2_val);
+
+}
+#endif

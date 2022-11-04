@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2017-2021 NXP
+ * Copyright 2017-2022 NXP
  */
 
 #include "FreeRTOS.h"
@@ -11,8 +11,10 @@
 #include "la9310_main.h"
 #include "la9310_irq.h"
 #include "la9310_edma.h"
+#ifdef TURN_ON_HOST_MODE
 #ifdef __RFIC
 #include "rfic_core.h"
+#endif
 #endif
 
 extern struct la9310_info * pLa9310Info;
@@ -98,12 +100,14 @@ void La9310MSG_1_IRQHandler( void )
     {
         vLa9310IrqMuxIrq();
     }
+#ifdef TURN_ON_HOST_MODE
 #ifdef __RFIC
     /* RFIC SW CMD */
     if( ( msir & BITMASK( LA9310_RF_SW_CMD_MSG_UNIT_BIT ) ) )
     {
         vRficSwCmdIrq( pLa9310Info->pRficDev );
     }
+#endif
 #endif
 
     NVIC_ClearPendingIRQ( IRQ_MSG1 );

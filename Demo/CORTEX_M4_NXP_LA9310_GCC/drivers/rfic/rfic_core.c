@@ -7,6 +7,7 @@
 #include "rfic_sw_cmd.h"
 #include "rfic_cmd.h"
 
+#ifndef TURN_ON_STANDALONE_MODE
 BaseType_t xRficPostLocalSwCmd( RficDevice_t *pRficDev,
 				rf_sw_cmd_desc_t *pSwCmdDesc )
 {
@@ -66,6 +67,7 @@ void vRficSwCmdIrq( RficDevice_t *pRficDev )
         RF_STATS_ADD( pRficDev->pRfHif->rf_stats.remote_cmd_failed_count );
     }
 }
+#endif
 
 BaseType_t xHandleSwCmd( RficDevice_t *pRficDev, rf_sw_cmd_desc_t *pSwCmdDesc)
 {
@@ -136,6 +138,7 @@ BaseType_t xHandleSwCmd( RficDevice_t *pRficDev, rf_sw_cmd_desc_t *pSwCmdDesc)
     return xRet;
 }
 
+#ifndef TURN_ON_STANDALONE_MODE
 void vRficCoreTask( void * pvParameters )
 {
     RficDevice_t *pRficDev = pvParameters;
@@ -180,3 +183,4 @@ void vRficCoreTask( void * pvParameters )
 	}
     }
 }
+#endif

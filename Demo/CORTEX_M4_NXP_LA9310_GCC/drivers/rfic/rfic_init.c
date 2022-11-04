@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright 2021 NXP
+ * Copyright 2021-2022 NXP
  */
 #include "rfic_core.h"
 #include "debug_console.h"
@@ -162,6 +162,7 @@ BaseType_t iRficInit( struct la9310_info *pLa9310Info )
     vRficInitHif( &pHif->rf_hif );
     pRficDev->pRfHif = &pHif->rf_hif;
 
+    #ifndef TURN_ON_STANDALONE_MODE
     /* Create local and remote queue */
     pRficDev->xLocalQueue = xQueueCreate( 1, sizeof( void * ));
     if( NULL == pRficDev->xLocalQueue ) {
@@ -200,6 +201,7 @@ BaseType_t iRficInit( struct la9310_info *pLa9310Info )
 	log_err( "%s: Core task create failed\n\r", __func__ );
 	return xRet;
     }
+    #endif
 
     /* All good, link it up! */
     pRficDev->pLa9310Info = pLa9310Info;

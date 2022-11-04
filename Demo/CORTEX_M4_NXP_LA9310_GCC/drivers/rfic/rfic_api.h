@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright 2021 NXP
+ * Copyright 2021-2022 NXP
  */
 #ifndef __RFIC_API_H
 #define __RFIC_API_H
@@ -102,4 +102,27 @@ RficResp_t xRficAdrfGainCtrl(RficHandle_t handle, uint8_t gain);
  */
 RficResp_t xRficFastCal( RficHandle_t handle );
 
+#ifdef TURN_ON_STANDALONE_MODE
+/*!
+ * @brief xRficIQDump
+ * Dump IQ samples on console after receiving response from VSPA
+ * VSPA will start captruing IQ samples from AXIQ to LA931x memory and send response
+ *
+ * @param handle   : NLM RFIC handler
+ * @param size     : size of IQ samples to dump to a file
+ *                   size should be in number of 4KB blocks, valid is 1 to 10 
+ *
+ * @return       : 0 for success; error number in case of failure
+ */
+RficResp_t xRficIQDump( RficHandle_t handle, uint32_t size);
+
+/*!
+ * @brief xRficGetRFValues
+ * Prints all configured values
+ *
+ * @param handle   : NLM RFIC handler
+ *
+ */
+void xRficGetRFConf( RficHandle_t handle);
+#endif //TURN_ON_STANDALONE_MODE
 #endif //__RFIC_API_H

@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2021 NXP
+ * Copyright 2021-2022 NXP
  */
 
 /* FreeRTOS includes. */
@@ -32,10 +32,10 @@
 #ifdef __RFIC
     #include "rfic_api.h"
 #endif
+#include "../drivers/avi/la9310_vspa_dma.h"
 
 uint32_t ulEdmaDemoInfo = 0xaa55aa55;
 extern struct la9310_info * pLa9310Info;
-extern uint32_t BootSource;
 
 #ifndef  configINCLUDE_TRACE_RELATED_CLI_COMMANDS
     #define configINCLUDE_TRACE_RELATED_CLI_COMMANDS    0
@@ -59,6 +59,9 @@ enum eLa9310TestCmdID
     TEST_RFIC = 13,
     TEST_PPS_INT_PHY_COMP = 14,
     TEST_BUSYDELAY_ACCURACY =15,
+    TEST_EEPROM_PROGRAM =16,
+    TEST_OVERLAY =17,
+    TEST_VSPA_TABLES =18,
     MAX_TEST_CMDS
 };
 
@@ -69,7 +72,10 @@ enum eLa9310TestCmdID
         RFIC_ADJPLLFREQ,
         RFIC_LNA_CTRL,
         RFIC_DEMOD_GAIN,
-        RFIC_VGA_GAIN
+        RFIC_VGA_GAIN,
+        RFIC_FAST_CAL,
+        RFIC_IQ_DUMP,
+        RFIC_GET_VALUES
     };
 #endif
 
@@ -84,19 +90,20 @@ static const char cCmdDescriptinArr[ MAX_TEST_CMDS ][ MAX_CMD_DESCRIPTION_SIZE ]
     " To test DSPI ( test 6 <testid - 0/1/2 (LTC5586/LMX2582/ADRF6520) > <mode - 0/1 (GPIO/PA_EN)>)",
     " To test Watch Dog (test 7)",
     " To PCI REG DUMP (test 8)",
+#ifdef TURN_ON_HOST_MODE
     " To test BBDEV IPC RAW ops validation (test 9 <mode - latency/validation>)",
     " To raise MSI (test 10 <msi number>)",
+#endif    
     " To print phy timer counter every 1s for no of. iter (test 11 <iter>)",
 #ifdef __RFIC
     " To test RFIC (test 13 <cmd_id> <cmd_parameter>)",
 #endif
-    " To enable/disable phy timer pps_in interrupt (test 14 0/1)"
-    " To test busy delay accuracy using phy timer(test 15)"
-};
+    " To enable/disable phy timer pps_in interrupt (test 14 0/1)",
+    " To test busy delay accuracy using phy timer(test 15)",
+    " To program eeprom (test 16 num_bytes)",
+    " To load vspa overlay (test 17 ovl_num (1/2 (.overlay_1/.overlay_2)",
+    " To verify vspa table (test 18)"
 
-static const char cCmdDescriptinArrI2C[ MAX_TEST_CMDS ][ MAX_CMD_DESCRIPTION_SIZE ] =
-{
-    " No test commands support for I2C boot currently"
 };
 
 
@@ -148,232 +155,283 @@ static portBASE_TYPE prvNLMTest( char * pcWriteBuffer,
     pcParam1 = FreeRTOS_CLIGetParameter( pcCommandString, 1, &lParameterStringLength );
     ulCmd = strtoul( pcParam1, ( char ** ) NULL, 10 );
 
-    if ( BootSource == LA9310_BOOT_SRC_I2C )
-    {
-        log_info( "%s \r\n\r\n", cCmdDescriptinArrI2C[ 0 ] );
-    }
-    else
-    {
-        switch( ulCmd )
-        {
-            case TEST_PPS_INT_PHY_COMP:
-                pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
-                ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
-                if( ulTempVal2 )
-                {
-                    vPhyTimerPPSINEnable();
-                }
-                else
-                {
-                    vPhyTimerPPSINDisable();
-                }
-                break;
+	switch( ulCmd )
+	{
+		case TEST_PPS_INT_PHY_COMP:
+			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
+			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
+			if( ulTempVal2 )
+			{
+				vPhyTimerPPSINEnable();
+			}
+			else
+			{
+				vPhyTimerPPSINDisable();
+			}
+			break;
 
-            case TEST_PHYTIMER_COUNTER:
-                pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
-                ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
-                for( i = 0; i < ulTempVal2; i++ )
-                {
-                    ulTempVal3 = ulPhyTimerCapture( PHY_TIMER_COMP_PA_EN );
-                    PRINTF( "Phy timer counter: 0x%x\r\n", ulTempVal3 );
-                    vTaskDelay( 1000 );
-                }
-                break;
+		case TEST_PHYTIMER_COUNTER:
+			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
+			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
+			for( i = 0; i < ulTempVal2; i++ )
+			{
+				ulTempVal3 = ulPhyTimerCapture( PHY_TIMER_COMP_PA_EN );
+				PRINTF( "Phy timer counter: 0x%x\r\n", ulTempVal3 );
+				vTaskDelay( 1000 );
+			}
+			break;
 
-            case TEST_BUSYDELAY_ACCURACY:
-                ulTempVal3 = ulPhyTimerCapture( PHY_TIMER_COMP_PA_EN );
-                vUDelay( 1000 );
-                ulTempVal4 = ulPhyTimerDiffToUS( ulTempVal3, ulPhyTimerCapture( PHY_TIMER_COMP_PA_EN ) );
-                PRINTF( "Phy timer Us passed: %d for vUDelay(%d)\r\n", ulTempVal4, 1000 );
-                break;
+		case TEST_BUSYDELAY_ACCURACY:
+			ulTempVal3 = ulPhyTimerCapture( PHY_TIMER_COMP_PA_EN );
+			vUDelay( 1000 );
+			ulTempVal4 = ulPhyTimerDiffToUS( ulTempVal3, ulPhyTimerCapture( PHY_TIMER_COMP_PA_EN ) );
+			PRINTF( "Phy timer Us passed: %d for vUDelay(%d)\r\n", ulTempVal4, 1000 );
+			break;
 
-            case TEST_TICK_SECONDS:
-                pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
-                ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
-                pcParam3 = FreeRTOS_CLIGetParameter( pcCommandString, 3, &lParameterStringLength );
-                ulTempVal3 = strtoul( pcParam3, ( char ** ) NULL, 10 );
+		case TEST_TICK_SECONDS:
+			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
+			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
+			pcParam3 = FreeRTOS_CLIGetParameter( pcCommandString, 3, &lParameterStringLength );
+			ulTempVal3 = strtoul( pcParam3, ( char ** ) NULL, 10 );
 
-                for( i = 0; i < ulTempVal2; i++ )
-                {
-                    PRINTF( "Timer running\r\n" );
-                    vTaskDelay( ulTempVal3 * configTICK_RATE_HZ );
-                }
+			for( i = 0; i < ulTempVal2; i++ )
+			{
+				PRINTF( "Timer running\r\n" );
+				vTaskDelay( ulTempVal3 * configTICK_RATE_HZ );
+			}
 
-                break;
+			break;
 
-            case TEST_MSI:
-                pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
-                ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
-                vRaiseMsi( pLa9310Info, ( int ) ulTempVal2 );
-                break;
+		case TEST_MSI:
+			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
+			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
+			vRaiseMsi( pLa9310Info, ( int ) ulTempVal2 );
+			break;
 
-            #ifdef __RFIC
-                case TEST_RFIC:
-                    pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
-                    ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
-                    pcParam3 = FreeRTOS_CLIGetParameter( pcCommandString, 3, &lParameterStringLength );
-                    ulTempVal3 = strtoul( pcParam3, ( char ** ) NULL, 10 );
+		#ifdef __RFIC
+			case TEST_RFIC:
+				pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
+				ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
+				pcParam3 = FreeRTOS_CLIGetParameter( pcCommandString, 3, &lParameterStringLength );
+				ulTempVal3 = strtoul( pcParam3, ( char ** ) NULL, 10 );
 
-                    RficHandle_t pRficDev;
-                    pRficDev = xRficLibInit();
-                    if(pRficDev == NULL)
-                    {
-                        log_err( "%s: Handle not found \n\r", __func__ );
+				RficHandle_t pRficDev;
+				pRficDev = xRficLibInit();
+				if(pRficDev == NULL)
+				{
+					log_err( "%s: Handle not found \n\r", __func__ );
+					break;
+				}
+
+				RficResp_t ret;
+				switch( ulTempVal2 )
+				{
+
+					case RFIC_SETBAND:
+						starttime = ulPhyTimerCapture( 11 );
+						ret = xRficSetBand(pRficDev, ulTempVal3);
+						endtime = ulPhyTimerCapture( 11 );
+						PRINTF( "ST[%d], ET[%d], LT[%d]\r\n", starttime, endtime,
+								endtime-starttime);
+						if(ret != RFIC_SUCCESS)
+							log_err( "%s: SetBand Failed ,ret  %d\n\r", __func__, ret );
+						break;
+
+					case RFIC_ADJPLLFREQ:
+						starttime = ulPhyTimerCapture( 11 );
+						ret = xRficAdjustPllFreq(pRficDev, ulTempVal3);
+						endtime = ulPhyTimerCapture( 11 );
+						PRINTF( "ST[%d], ET[%d], LT[%d]\r\n", starttime, endtime,
+								endtime-starttime);
+						if(ret != RFIC_SUCCESS)
+							log_err( "%s: AdjPllFreq Failed ,ret  %d\n\r", __func__, ret );
+						break;
+
+					case RFIC_LNA_CTRL:
+						starttime = ulPhyTimerCapture( 11 );
+						ret = xRficLnaCtrl(pRficDev, ulTempVal3);
+						endtime = ulPhyTimerCapture( 11 );
+						PRINTF( "ST[%d], ET[%d], LT[%d]\r\n", starttime, endtime,
+								endtime-starttime);
+						if(ret != RFIC_SUCCESS)
+							log_err( "%s: LNA Ctrl Failed ,ret  %d\n\r", __func__, ret );
+						break;
+
+					case RFIC_DEMOD_GAIN:
+						pcParam4 = FreeRTOS_CLIGetParameter( pcCommandString, 4, &lParameterStringLength );
+						ulTempVal4 = strtoul( pcParam4, ( char ** ) NULL, 10 );
+						starttime = ulPhyTimerCapture( 11 );
+						ret = xRficDemodGainCtrl(pRficDev, ulTempVal3, ulTempVal4);
+						endtime = ulPhyTimerCapture( 11 );
+						PRINTF( "ST[%d], ET[%d], LT[%d]\r\n", starttime, endtime,
+								endtime-starttime);
+						if(ret != RFIC_SUCCESS)
+							log_err( "%s: Demod Gain Failed ,ret  %d\n\r", __func__, ret );
+
+						break;
+
+					case RFIC_VGA_GAIN:
+						starttime = ulPhyTimerCapture( 11 );
+						ret = xRficAdrfGainCtrl(pRficDev, ulTempVal3);
+						endtime = ulPhyTimerCapture( 11 );
+						PRINTF( "ST[%d], ET[%d], LT[%d]\r\n", starttime, endtime,
+								endtime-starttime);
+						if(ret != RFIC_SUCCESS)
+							log_err( "%s: ADRF Gain Failed ,ret  %d\n\r", __func__, ret );
+						break;
+
+                    case RFIC_FAST_CAL:
+                        starttime = ulPhyTimerCapture( 11 );
+                        ret = xRficFastCal( pRficDev );
+                        endtime = ulPhyTimerCapture( 11 );
+                        PRINTF( "ST[%d], ET[%d], LT[%d]\r\n", starttime, endtime,
+                                endtime-starttime);
+                        if(ret != RFIC_SUCCESS)
+                            log_err( "%s: Fast cal API Failed ,ret  %d\n\r", __func__, ret );
                         break;
-                    }
 
-                    RficResp_t ret;
-                    switch( ulTempVal2 )
-                    {
+                    #ifdef TURN_ON_STANDALONE_MODE
+                    case RFIC_IQ_DUMP:
+                        if (ulTempVal3 < 1 || ulTempVal3 > 10)
+                        {
+                            log_err( "%s: Number of 4KB blocks should be between 1 to 10 \n\r", __func__);
+                            ret = RFIC_PARAM_INVALID;
+                        }
+                        else
+                        {
+                            ret = xRficIQDump( pRficDev, ulTempVal3 );
+                        }
+                        if(ret != RFIC_SUCCESS)
+                            log_err( "%s: IQ Dump Failed ,ret  %d\n\r", __func__, ret );
+                        break;
+                    case RFIC_GET_VALUES:
+                        xRficGetRFConf( pRficDev );
+                        break;
+                    #endif
 
-                        case RFIC_SETBAND:
-                            starttime = ulPhyTimerCapture( 11 );
-                            ret = xRficSetBand(pRficDev, ulTempVal3);
-                            endtime = ulPhyTimerCapture( 11 );
-                            PRINTF( "ST[%d], ET[%d], LT[%d]\r\n", starttime, endtime,
-                                    endtime-starttime);
-                            if(ret != RFIC_SUCCESS)
-                                log_err( "%s: SetBand Failed ,ret  %d\n\r", __func__, ret );
-                            break;
+					default:
+						log_err("%s: Invalid Command Id - %d\n\r", __func__, ulTempVal2 );
+						break;
+				}
+				break;
+		#endif
 
-                        case RFIC_ADJPLLFREQ:
-                            starttime = ulPhyTimerCapture( 11 );
-                            ret = xRficAdjustPllFreq(pRficDev, ulTempVal3);
-                            endtime = ulPhyTimerCapture( 11 );
-                            PRINTF( "ST[%d], ET[%d], LT[%d]\r\n", starttime, endtime,
-                                    endtime-starttime);
-                            if(ret != RFIC_SUCCESS)
-                                log_err( "%s: AdjPllFreq Failed ,ret  %d\n\r", __func__, ret );
-                            break;
+		case TEST_WDOG:
+			vWdogDemo( pLa9310Info );
+			break;
 
-                        case RFIC_LNA_CTRL:
-                            starttime = ulPhyTimerCapture( 11 );
-                            ret = xRficLnaCtrl(pRficDev, ulTempVal3);
-                            endtime = ulPhyTimerCapture( 11 );
-                            PRINTF( "ST[%d], ET[%d], LT[%d]\r\n", starttime, endtime,
-                                    endtime-starttime);
-                            if(ret != RFIC_SUCCESS)
-                                log_err( "%s: LNA Ctrl Failed ,ret  %d\n\r", __func__, ret );
-                            break;
+		case TEST_GPIO:
+			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
+			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
+			pcParam3 = FreeRTOS_CLIGetParameter( pcCommandString, 3, &lParameterStringLength );
+			ulTempVal3 = strtoul( pcParam3, ( char ** ) NULL, 10 );
+			pcParam4 = FreeRTOS_CLIGetParameter( pcCommandString, 4, &lParameterStringLength );
+			ulTempVal4 = strtoul( pcParam4, ( char ** ) NULL, 10 );
+			log_info( "GPIO Test GpioNo %d Dir %d Val %d:\r\n\r\n", ulTempVal2, ulTempVal3, ulTempVal4 );
+			vLa9310GpioTest( ulTempVal2, ulTempVal3, ulTempVal4 );
+			break;
 
-                        case RFIC_DEMOD_GAIN:
-                            pcParam4 = FreeRTOS_CLIGetParameter( pcCommandString, 4, &lParameterStringLength );
-                            ulTempVal4 = strtoul( pcParam4, ( char ** ) NULL, 10 );
-                            starttime = ulPhyTimerCapture( 11 );
-                            ret = xRficDemodGainCtrl(pRficDev, ulTempVal3, ulTempVal4);
-                            endtime = ulPhyTimerCapture( 11 );
-                            PRINTF( "ST[%d], ET[%d], LT[%d]\r\n", starttime, endtime,
-                                    endtime-starttime);
-                            if(ret != RFIC_SUCCESS)
-                                log_err( "%s: Demod Gain Failed ,ret  %d\n\r", __func__, ret );
+		case TEST_eDMA:
+			vLa9310EdmaDemo( &ulEdmaDemoInfo );
+			break;
 
-                            break;
-                        case RFIC_VGA_GAIN:
-                            starttime = ulPhyTimerCapture( 11 );
-                            ret = xRficAdrfGainCtrl(pRficDev, ulTempVal3);
-                            endtime = ulPhyTimerCapture( 11 );
-                            PRINTF( "ST[%d], ET[%d], LT[%d]\r\n", starttime, endtime,
-                                    endtime-starttime);
-                            if(ret != RFIC_SUCCESS)
-                                log_err( "%s: ADRF Gain Failed ,ret  %d\n\r", __func__, ret );
-                            break;
+		case TEST_I2C:
+			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
+			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
 
-                        default:
-                            log_err("%s: Invalid Command Id - %d\n\r", __func__, ulTempVal2 );
-                            break;
-                    }
-                    break;
-            #endif
+			pcParam3 = FreeRTOS_CLIGetParameter( pcCommandString, 3, &lParameterStringLength );
+			ulTempVal3 = strtoul( pcParam3, ( char ** ) NULL, 10 );
 
-            case TEST_WDOG:
-                vWdogDemo( pLa9310Info );
-                break;
+			pcParam4 = FreeRTOS_CLIGetParameter( pcCommandString, 4, &lParameterStringLength );
+			ulTempVal4 = strtoul( pcParam4, ( char ** ) NULL, 16 );
 
-            case TEST_GPIO:
-                pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
-                ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
-                pcParam3 = FreeRTOS_CLIGetParameter( pcCommandString, 3, &lParameterStringLength );
-                ulTempVal3 = strtoul( pcParam3, ( char ** ) NULL, 10 );
-                pcParam4 = FreeRTOS_CLIGetParameter( pcCommandString, 4, &lParameterStringLength );
-                ulTempVal4 = strtoul( pcParam4, ( char ** ) NULL, 10 );
-                log_info( "GPIO Test GpioNo %d Dir %d Val %d:\r\n\r\n", ulTempVal2, ulTempVal3, ulTempVal4 );
-                vLa9310GpioTest( ulTempVal2, ulTempVal3, ulTempVal4 );
-                break;
+			pcParam5 = FreeRTOS_CLIGetParameter( pcCommandString, 5, &lParameterStringLength );
+			ulTempVal5 = strtoul( pcParam5, ( char ** ) NULL, 16 );
 
-            case TEST_eDMA:
-                vLa9310EdmaDemo( &ulEdmaDemoInfo );
-                break;
+			pcParam6 = FreeRTOS_CLIGetParameter( pcCommandString, 6, &lParameterStringLength );
+			ulTempVal6 = strtoul( pcParam6, ( char ** ) NULL, 10 );
 
-            case TEST_I2C:
-                pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
-                ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
+			pcParam7 = FreeRTOS_CLIGetParameter( pcCommandString, 7, &lParameterStringLength );
+			ulTempVal7 = strtoul( pcParam7, ( char ** ) NULL, 10 );
 
-                pcParam3 = FreeRTOS_CLIGetParameter( pcCommandString, 3, &lParameterStringLength );
-                ulTempVal3 = strtoul( pcParam3, ( char ** ) NULL, 10 );
+			pcParam8 = FreeRTOS_CLIGetParameter( pcCommandString, 8, &lParameterStringLength );
+			ulTempVal8 = strtoul( pcParam8, ( char ** ) NULL, 16 );
 
-                pcParam4 = FreeRTOS_CLIGetParameter( pcCommandString, 4, &lParameterStringLength );
-                ulTempVal4 = strtoul( pcParam4, ( char ** ) NULL, 16 );
+			vLa9310I2CTest( ulTempVal2, ulTempVal3, ulTempVal4, ulTempVal5, ulTempVal6, ulTempVal7, ulTempVal8 );
+			break;
 
-                pcParam5 = FreeRTOS_CLIGetParameter( pcCommandString, 5, &lParameterStringLength );
-                ulTempVal5 = strtoul( pcParam5, ( char ** ) NULL, 16 );
+		case TEST_DSPI:
+			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
+			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
+			pcParam3 = FreeRTOS_CLIGetParameter( pcCommandString, 3, &lParameterStringLength );
+			ulTempVal3 = strtoul( pcParam3, ( char ** ) NULL, 10 );
+			vDspiTest( ulTempVal2, ulTempVal3 );
+			break;
 
-                pcParam6 = FreeRTOS_CLIGetParameter( pcCommandString, 6, &lParameterStringLength );
-                ulTempVal6 = strtoul( pcParam6, ( char ** ) NULL, 10 );
+		case TEST_AVI:
+			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
+			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
+			vAVIDemo( ulTempVal2 );
 
-                pcParam7 = FreeRTOS_CLIGetParameter( pcCommandString, 7, &lParameterStringLength );
-                ulTempVal7 = strtoul( pcParam7, ( char ** ) NULL, 10 );
+			break;
 
-                pcParam8 = FreeRTOS_CLIGetParameter( pcCommandString, 8, &lParameterStringLength );
-                ulTempVal8 = strtoul( pcParam8, ( char ** ) NULL, 16 );
+		case TEST_EXCEPTIONS:
+			vGenerateExceptions( UNALIGNED_ACCESS );
+			break;
+		#ifdef TURN_ON_HOST_MODE
+		case TEST_PCI_DUMP:
+			vLA9310DumpPCIeRegs();
+			break;
+		case TEST_BBDEV_IPC_RAW:
+			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
 
-                vLa9310I2CTest( ulTempVal2, ulTempVal3, ulTempVal4, ulTempVal5, ulTempVal6, ulTempVal7, ulTempVal8 );
-                break;
+			if (!strcmp(pcParam2, "validation"))
+				vLa9310DemoIpcRawTest(0);
+			else if (!strcmp(pcParam2, "latency"))
+				vLa9310DemoIpcRawTest(1);
+			else
+				log_info("Invalid mode %s\n\r", pcParam2);
 
-            case TEST_DSPI:
-                pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
-                ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
-                pcParam3 = FreeRTOS_CLIGetParameter( pcCommandString, 3, &lParameterStringLength );
-                ulTempVal3 = strtoul( pcParam3, ( char ** ) NULL, 10 );
-                vDspiTest( ulTempVal2, ulTempVal3 );
-                break;
+			break;
+		#endif
 
-            case TEST_AVI:
-                pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
-                ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
-                vAVIDemo( ulTempVal2 );
+		#ifdef TURN_ON_STANDALONE_MODE
+		case TEST_EEPROM_PROGRAM:
+			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
+			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
+			vProgramEEPROM(ulTempVal2);
+			break;
+		case TEST_OVERLAY:
+			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
+			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
+			switch(ulTempVal2)
+			{
+				case 1:
+					iLoadOverlay(".overlay_1", 1);
+					log_info("Overlay .overlay_1 loaded successfully\r\n");
+					break;
+				case 2:
+					iLoadOverlay(".overlay_2", 1);
+					log_info(".overlay_2 loaded successfully\r\n");
+					break;
+				default:
+					log_info("Invalid overlay number..\r\n");
+					break;
+			}
+			break;
+		case TEST_VSPA_TABLES:
+			iVerifyVSPATable();
+			break;
+		#endif //TURN_ON_STANDALONE_MODE
+		default:
 
-                break;
+			for( ulCmd = 0; ulCmd < MAX_TEST_CMDS; ulCmd++ )
+			{
+				log_info( "%s \r\n\r\n", cCmdDescriptinArr[ ulCmd ] );
+			}
 
-            case TEST_EXCEPTIONS:
-                vGenerateExceptions( UNALIGNED_ACCESS );
-                break;
-
-            case TEST_PCI_DUMP:
-                vLA9310DumpPCIeRegs();
-                break;
-
-            case TEST_BBDEV_IPC_RAW:
-                pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
-
-                if (!strcmp(pcParam2, "validation"))
-                    vLa9310DemoIpcRawTest(0);
-                else if (!strcmp(pcParam2, "latency"))
-                    vLa9310DemoIpcRawTest(1);
-                else
-                    log_info("Invalid mode %s\n\r", pcParam2);
-
-                break;
-
-            default:
-
-                for( ulCmd = 0; ulCmd < MAX_TEST_CMDS; ulCmd++ )
-                {
-                    log_info( "%s \r\n\r\n", cCmdDescriptinArr[ ulCmd ] );
-                }
-
-                break;
-        }
-    }
+			break;
+	}
 
     pcWriteBuffer[ 0 ] = 0;
 
