@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2017, 2021 NXP
+ * Copyright 2017, 2021-2022 NXP
  */
 
 #include "FreeRTOS.h"
@@ -729,6 +729,9 @@ int iLa9310_I2C_Read( uint32_t ulI2C_Regs_P,
     int ret = 0;
     uint8_t ucTemp = 0;
     uint32_t ulRet_Bytes = 0;
+
+	ucDev_Addr += (ulDev_Offset >> 16) & 0x0F;
+	ulDev_Offset = ulDev_Offset &  0xFFFF;
 
     i2c_regs = ( i2c_regs_t * ) ulI2C_Regs_P;
     ret = prvCheck_Offset( ulDev_Offset, ucDev_Offset_Len, ulD_Len );

@@ -34,3 +34,20 @@ Package - FreeRTOS(tm)
 	URL: http://www.freertos.org
 	Location: la931x_freertos                   
 
+Package - standalone_utils
+	Description: utilities to create binaries for standalone boot
+	Version: 0.1
+	Author: NXP
+	License: BSD-3-Clause
+	Format: source code
+	Location: la931x_freertos/standalone_utils
+
+
+
+Firmware
+	Description: LA931x VSPA core binaries and demos pre-build binaries
+	Version: 0.1
+	Outgoing License: DN_Binary_Firmware_License_Agreement
+	Format: source code
+	Origin: NXP Proprietary
+	Location: la931x_freertos/standalone_utils/firmware

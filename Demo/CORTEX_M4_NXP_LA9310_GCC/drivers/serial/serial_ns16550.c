@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2017, 2021 NXP
+ * Copyright 2017, 2021-2022 NXP
  */
 
 #include <common.h>
@@ -45,9 +45,9 @@ void vSerialWriteBlocking( NS16550_t xBase,
                            const uint8_t * pucData,
                            size_t xLength )
 {
-    if ( BootSource == LA9310_BOOT_SRC_PCIE )
+	#ifdef TURN_ON_HOST_MODE
         vMemlogWrite( pucData, xLength );
-
+	#endif
     while( xLength-- )
     {
         while( !( IN_8( &xBase->lsr ) & SERIAL_LSR_THRE ) )

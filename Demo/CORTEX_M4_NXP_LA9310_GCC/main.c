@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2017-2021 NXP
+ * Copyright 2017-2022 NXP
  */
 
 #include "FreeRTOS.h"
@@ -26,6 +26,8 @@
 #include <sync_timing_device_cli.h>
 #include <sw_cmd_engine.h>
 #include "la9310_v2h_if.h"
+#include "drivers/avi/la9310_vspa_dma.h"
+
 
 #if NXP_ERRATUM_A_009410
     #include "la9310_pci.h"
@@ -55,7 +57,6 @@
 uint32_t ulMemLogIndex;
 struct la9310_info * pLa9310Info;
 extern void vVSPAMboxInit();
-uint32_t BootSource;
 
 void v_main_Hif_Init( struct la9310_info * pLa9310Info )
 {
@@ -68,6 +69,7 @@ void v_main_Hif_Init( struct la9310_info * pLa9310Info )
     pLa9310Info->stats = &pxHif->stats;
 }
 
+#ifdef TURN_ON_HOST_MODE
 static int iCheckReadyState( struct la9310_info * pLa9310Info )
 {
     int rc = HOST_NOT_READY;
@@ -89,14 +91,17 @@ static int iCheckReadyState( struct la9310_info * pLa9310Info )
 
     return rc;
 }
+#endif
 
 static void prvInitLa9310Info( struct la9310_info * pLa9310Info )
 {
+	#ifdef TURN_ON_HOST_MODE
     int i = 0;
     uint32_t uMSIAddrVal = 0;
     uint32_t __IO * pMsiAddrReg;
     uint32_t __IO * pMsiDataAddr;
     struct la9310_msi_info * pMsiInfo;
+	#endif
 
     pLa9310Info->itcm_addr = ( void * ) TCML_PHY_ADDR;
     pLa9310Info->dtcm_addr = ( void * ) TCMU_PHY_ADDR;
@@ -106,8 +111,10 @@ static void prvInitLa9310Info( struct la9310_info * pLa9310Info )
     pLa9310Info->pcie_obound = ( void * ) PCIE_PHY_ADDR;
     pLa9310Info->pHif = ( struct la9310_hif * ) ( ( uint32_t ) pLa9310Info->itcm_addr +
                                                   LA9310_EP_HIF_OFFSET );
+	pLa9310Info->pHif->dbg_log_regs.log_level = LA9310_LOG_LEVEL_INFO;
     pLa9310Info->pxDcr = ( void * ) DCR_BASE_ADDR;
 
+	#ifdef TURN_ON_HOST_MODE
     /* Initialize MSI */
     pMsiAddrReg = ( uint32_t * ) ( ( uint32_t ) pLa9310Info->pcie_addr +
                                    PCIE_MSI_ADDR_REG );
@@ -140,8 +147,10 @@ static void prvInitLa9310Info( struct la9310_info * pLa9310Info )
                       i, pMsiInfo[ i ].addr, pMsiInfo[ i ].data );
         }
     #endif /* ifdef LS1046_HOST_MSI_RAISE */
+	#endif //TURN_ON_STANDALONE_MODE
 }
 
+#ifdef TURN_ON_HOST_MODE
 #ifdef RUN_V2H_TEST_APP
     void vV2H( void * pvParameters )
     {
@@ -154,7 +163,6 @@ static void prvInitLa9310Info( struct la9310_info * pLa9310Info )
             vTaskDelay( 10 );
             dmb();
         }
-
         vV2HDemo( pLa9310Info );
 
         while( 1 )
@@ -162,7 +170,8 @@ static void prvInitLa9310Info( struct la9310_info * pLa9310Info )
             vTaskDelay( 500 );
         }
     }
-#endif /* if RUN_V2H_TEST_APP */
+    #endif /* if RUN_V2H_TEST_APP */
+#endif
 
 /* iLa9310HostPreInit: Host and La9310 both do a handshake for clock configuration
  * and init synchronization vLa9310_do_handshake(). Host waits in while loop for
@@ -190,9 +199,7 @@ int iLa9310HostPreInit( struct la9310_info * pLa9310Info )
     /*LA9310 IRQ MUX demo EVT (IRQ_EVT_TEST_BIT) registration */
     vLa9310DemoIrqEvtRegister( pLa9310Info );
 
-    #ifdef LA9310_CLOCK_SWITCH_ENABLE
-        vVSPAMboxInit();
-    #endif
+    vVSPAMboxInit();
 
 out:
     return irc;
@@ -263,18 +270,15 @@ int lSyncTimingDeviceUpgradeFirmware( SyncTimingDeviceContext_t *pxContext )
 }
 #endif
 
-int iPcieBoot ( void )
+int iInitHandler ( void )
 {
     int irc = 0;
     SyncTimingDeviceContext_t *pxContext = NULL;
-    #ifdef LA9310_CLOCK_SWITCH_ENABLE
-        void * avihndl = NULL;
-    #endif
+    void * avihndl = NULL;
 
     ulMemLogIndex = 0;
 
     iGpioInitRFIC();
-    PRINTF( "STARTING NLM.. Boot Source (PCIe) \n\r" );
     vEnableExceptions();
 
     pLa9310Info = pvPortMalloc( sizeof( struct la9310_info ) );
@@ -287,14 +291,14 @@ int iPcieBoot ( void )
     }
 
     memset( pLa9310Info, 0, sizeof( struct la9310_info ) );
-
+#ifdef TURN_ON_HOST_MODE
     if( sizeof( struct la9310_hif ) > LA9310_EP_HIF_SIZE )
     {
         PRINTF( "Invalid HIF size\r\n" );
         irc = FAILURE;
         goto out;
     }
-
+#endif //TURN_ON_STANDALONE_MODE
     /*XXX: DO NOT CALL log_*() before prvInitLa9310Info(), use PRINTF instead.*/
     prvInitLa9310Info( pLa9310Info );
 
@@ -311,6 +315,7 @@ int iPcieBoot ( void )
         goto out;
     }
 
+
     pxContext = pxSyncTimingDeviceInit();
 #if LA9310_UPGRADE_TIMESYNC_FW
     if( lSyncTimingDeviceUpgradeFirmware( pxContext ) )
@@ -324,19 +329,21 @@ int iPcieBoot ( void )
     /*Till Here system is running at 100 Mhz*/
     vLa9310_do_handshake( pLa9310Info );
 
+    #ifdef TURN_ON_HOST_MODE
     #if NXP_ERRATUM_A_009410
         vPCIEInterruptInit();
     #endif
+    #endif //TURN_ON_STANDALONE_MODE
 
     vInitMsgUnit();
-
+#ifdef LA9310_SYNC_TIME_MODE
     if( lSwCmdEngineInit() != 0 )
     {
             log_err( "sw cmd engine init failed\r\n" );
             irc = FAILURE;
             goto out;
     }
-
+#endif
 #ifdef __RFIC
     if( pdTRUE != iRficInit( pLa9310Info ))
     {
@@ -353,7 +360,7 @@ int iPcieBoot ( void )
         log_err( "%s: iLa9310HostPostInit Failed, rc %d\n\r", __func__, irc );
         goto out;
     }
-
+#ifdef TURN_ON_HOST_MODE
     if( bbdev_ipc_init( 0, 0 ) )
     {
         log_err( "IPC Init failed\r\n" );
@@ -370,25 +377,30 @@ int iPcieBoot ( void )
         goto out;
     }
 
+#endif //TURN_ON_STANDALONE_MODE
     vPhyTimerReset();
     /* Run phy timer at PLAT_FREQ / 8 = ( 122.88 * 4 ) / 8 = 61.44MHz */
     vPhyTimerEnable( PHY_TMR_DIVISOR );
     vPhyTimerPPSOUTConfig();
 
-    #ifdef LA9310_CLOCK_SWITCH_ENABLE
-        /*VSPA AVI Init*/
-        avihndl = iLa9310AviInit();
+    /*VSPA AVI Init*/
+    avihndl = iLa9310AviInit();
 
-        if( NULL == avihndl )
-        {
-            log_err( "ERR: %s: AVI Initialization Failed\n\r", __func__ );
-        }
-    #endif
+    if( NULL == avihndl )
+    {
+        log_err( "ERR: %s: AVI Initialization Failed\n\r", __func__ );
+    }
+#ifdef TURN_ON_STANDALONE_MODE
+	iLoadTableToTCM();
+    LoadVSPAImage();
+#endif //TURN_ON_STANDALONE_MODE
+    iLa9310AviConfig();
 
     #if __DCS
         vDcsInit(Half_Freq);
     #endif
 
+    #ifdef TURN_ON_HOST_MODE
     #ifdef RUN_V2H_TEST_APP
         irc = xTaskCreate( vV2H, "LA9310 V2H task", configMINIMAL_STACK_SIZE,
                            pLa9310Info, tskIDLE_PRIORITY + 1, NULL );
@@ -399,31 +411,18 @@ int iPcieBoot ( void )
             goto out;
         }
     #endif
+    #endif //TURN_ON_STANDALONE_MODE
 
+#ifdef LA9310_SYNC_TIME_MODE
     #ifdef LA9310_ENABLE_COMMAND_LINE
         vRegisterTimesyncCLICommands();
     #endif
+#endif //LA9310_SYNC_TIME_MODE
 
     irc = SUCCESS;
 
 out:
     return irc;
-}
-
-int iI2cBoot ( void )
-{
-    PRINTF( "STARTING NLM.. Boot Source (I2C) \n\r" );
-
-    #ifdef LA9310_CLOCK_SWITCH_ENABLE
-        vSocResetHandshake();
-        dmb();
-    #endif
-
-    /*Clock changes after handshake*/
-    vBoardFinalInit();
-
-    PRINTF( "Handshake Completed \n\r" );
-    return SUCCESS;
 }
 
 /*
@@ -432,6 +431,7 @@ int iI2cBoot ( void )
 int main( void )
 {
     int irc = 0;
+	uint32_t BootSource;
 
     /* Initialize hardware */
     vHardwareEarlyInit();
@@ -440,14 +440,15 @@ int main( void )
                    LX9310_BOOT_SRC_SHIFT) & LX9310_BOOT_SRC_MASK;
 
     if ( BootSource == LA9310_BOOT_SRC_PCIE ) {
-       irc = iPcieBoot ();
+        PRINTF( "STARTING NLM.. Boot Source (PCIe) \n\r" );
     } else if ( BootSource == LA9310_BOOT_SRC_I2C ) {
-       irc = iI2cBoot ();
+        PRINTF( "STARTING NLM.. Boot Source (I2C) \n\r" );
     } else {
       log_err( "Invalid Boot Source \n\r");
       goto out;
     }
 
+    irc = iInitHandler();
     if ( irc )
     {
       goto out;

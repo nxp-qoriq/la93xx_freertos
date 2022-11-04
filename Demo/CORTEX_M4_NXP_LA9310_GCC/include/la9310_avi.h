@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2017, 2021 NXP
+ * Copyright 2017, 2021-2022 NXP
  */
 
 
@@ -82,3 +82,4 @@ void * iLa9310AviInit( void );
  * @return : Returns the pointer to AVI handler
  */
 void * iLa9310AviHandle();
+int iLa9310AviConfig( void );

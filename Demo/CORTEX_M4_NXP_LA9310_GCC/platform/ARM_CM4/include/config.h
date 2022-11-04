@@ -1,15 +1,19 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright 2017, 2021 NXP
+ * Copyright 2021-2022 NXP
  */
 
 #ifndef __CONFIG_H__
 #define __CONFIG_H__
 
 #define PCIE_PHY_ADDR           0xa0000000
-#define TCML_PHY_ADDR           0x1f800000
 #define TCMU_PHY_ADDR           0x20000000
 
+#ifdef TURN_ON_STANDALONE_MODE
+#define TCML_PHY_ADDR 0x1f801000
+#else
+#define TCML_PHY_ADDR 0x1f800000
+#endif
 #define NXP_ERRATUM_A010650     1
 
 #define NXP_ERRATUM_A_009410    ( 1 )

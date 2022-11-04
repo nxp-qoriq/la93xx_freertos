@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2017-2018, 2021 NXP
+ * Copyright 2017-2018, 2021-2022 NXP
  */
 
 #include "FreeRTOS.h"
@@ -24,6 +24,10 @@
 #include "la9310_wdogAPI.h"
 #include "la9310_i2cAPI.h"
 #include "la9310_pinmux.h"
+#include "drivers/avi/la9310_vspa_dma.h"
+#include "la9310_i2cAPI.h"
+#include "common.h"
+#include <config.h>
 
 #define N_BYTES                   16
 #define N_INT                     ( N_BYTES / 4 )
@@ -33,7 +37,7 @@
 #define ITER_PER_CHANNEL          8
 #define MAX_IPC_MSG_BUFF          IPC_MSG_SIZE
 #define OVERLAY_SECTION_OFFSET    0x00  /*TBD*/
-
+#define DEBUG_HEX_DUMP
 /*
  * Uncomment either of following two option to run the IPC
  * test cases either in blocking mode or non-blocking mode.
@@ -260,30 +264,29 @@ void vLa9310DemoIrqEvtRegister( struct la9310_info * pLa9310Info )
     iLa9310RegisterEvt( pLa9310Info, IRQ_EVT_TEST_BIT, &La9310EvtHdlr );
 }
 
-#if DEBUG
-    static void hexdump( const unsigned char * src,
-                         uint32_t ulCount )
-    {
-        uint32_t ulIndex;
+void hexdump( const unsigned char * src,
+					 uint32_t ulCount )
+{
+	#ifdef DEBUG_HEX_DUMP
+	uint32_t ulIndex;
+	if( 0 == ulCount )
+	{
+		return;
+	}
 
-        if( 0 == ulCount )
-        {
-            return;
-        }
+	for( ulIndex = 0; ulIndex < ulCount; ++ulIndex )
+	{
+		PRINTF( "%02x ", src[ ulIndex ] );
 
-        for( ulIndex = 0; ulIndex < ulCount; ++ulIndex )
-        {
-            PRINTF( "%02x ", src[ ulIndex ] );
+		if( ( ulIndex + 1 ) % 16 == 0 )
+		{
+			PRINTF( "\r\n" );
+		}
+	}
 
-            if( ( ulIndex + 1 ) % 16 == 0 )
-            {
-                PRINTF( "\n" );
-            }
-        }
-
-        PRINTF( "\n" );
-    }
-#endif /* if DEBUG */
+	PRINTF( "\r\n" );
+	#endif /* if DEBUG */
+}
 
 void vGenerateExceptions( uint32_t ulID )
 {
@@ -320,7 +323,6 @@ void vGenerateExceptions( uint32_t ulID )
 
 void vAVIDemo( uint32_t ulNumIteration )
 {
-    #ifdef LA9310_CLOCK_SWITCH_ENABLE
         struct avi_mbox host_mbox;
         struct avi_mbox test_mbox = { 0 };
         int mbox_index = 0;
@@ -378,7 +380,6 @@ void vAVIDemo( uint32_t ulNumIteration )
 avi_out:
         log_info( "Exit %s\n\r", __func__ );
         return;
-    #endif /* ifdef LA9310_CLOCK_SWITCH_ENABLE */
 }
 
 void vWdogDemo( struct la9310_info * pLa9310Info )
@@ -430,3 +431,68 @@ void vLa9310GpioTest( uint8_t iGpioNum,
         log_info( "GPIO value is: %d\r\n", iGpioGetData( iGpioNum ) );
     }
 }
+#ifdef TURN_ON_STANDALONE_MODE
+void vProgramEEPROM(uint32_t uNumBytes)
+{
+	struct vspa_image_hdr *vspa_hdr;
+	uint8_t *vspa_bin_ptr;
+	unsigned int num_sections;
+	uint32_t num_iteration,itr;
+	int ret;
+	uint32_t uVspaHdrEEPROMAddr;
+
+	ret = iGetExtTableInfo(EXT_VSPA_BIN_EEPROM_ADDR,&uVspaHdrEEPROMAddr);
+	if(ret != 0 )
+		log_info("%s Invalid uVspaHdrEEPROMAddr 0x%x \r\n",__func__,uVspaHdrEEPROMAddr);
+
+	vspa_hdr = (struct vspa_image_hdr * )(( uint32_t ) TCMU_PHY_ADDR + 0x1000);
+	num_sections = vspa_hdr->num_sections;
+	log_info("num_sections %d byte to program %d\r\n",vspa_hdr->num_sections,uNumBytes);
+	for(int ctr = 0 ; ctr < num_sections; ctr++)
+	{
+			log_info("sectionName %s is_overlay %d dmem_addr 0x%08x byte_cnt 0x%08x xfr_ctrl = 0x%08x eeprom_rel_addr_offsetr 0x%08x \r\n",
+			vspa_hdr->dma_sec_info[ctr].section_name, vspa_hdr->dma_sec_info[ctr].is_overlay,
+			vspa_hdr->dma_sec_info[ctr].dmem_addr,
+			vspa_hdr->dma_sec_info[ctr].byte_cnt,vspa_hdr->dma_sec_info[ctr].xfr_ctrl,
+			vspa_hdr->dma_sec_info[ctr].xfr_ctrl,vspa_hdr->dma_sec_info[ctr].eeprom_rel_addr_offset);
+	}
+
+	num_iteration   = uNumBytes /4 ;
+	vspa_bin_ptr = (uint8_t *) (TCMU_PHY_ADDR + 0x1000);
+	hexdump ( (unsigned char *) (TCMU_PHY_ADDR + 0x1000) , uNumBytes);
+	for(itr = 0; itr < num_iteration; itr++)
+	{
+		ret = iLa9310_I2C_Write( LA9310_FSL_I2C1,IC2_EEPROM_DEV_ADDR ,uVspaHdrEEPROMAddr + (itr * MAX_EEPROM_READ_SIZE ),
+		LA9310_I2C_DEV_OFFSET_LEN_2_BYTE, vspa_bin_ptr + (itr * MAX_EEPROM_READ_SIZE ), MAX_EEPROM_READ_SIZE );
+		if(ret < 1)
+		{
+			log_err("Fail to write eeprom\r\n");
+		}
+	}
+	memset(vspa_bin_ptr, 0x00, uNumBytes);
+	hexdump ( (unsigned char *) (TCMU_PHY_ADDR + 0x1000) , 64);
+	CopyToTCM("Program EEPROM,",(uint32_t) (TCMU_PHY_ADDR + 0x1000), uVspaHdrEEPROMAddr,uNumBytes);
+}
+
+int iVerifyVSPATable()
+{
+    void * dtcm_addr;
+    uint32_t num_vspa_tbls,ctr;
+    struct vspa_table_hdr *vspa_hdr;
+    dtcm_addr = pLa9310Info->dtcm_addr;
+
+    vspa_hdr = (struct vspa_table_hdr * ) ((( uint32_t ) dtcm_addr + VSPA_HDR_TABLE_TCM_OFFSET));
+    num_vspa_tbls = vspa_hdr->num_vspa_tbls;
+    log_info("num_vspa_tbls %d \r\n",num_vspa_tbls);
+    for(ctr = 0; ctr < num_vspa_tbls; ctr++)
+    {
+        log_info("tbl_name %s tbl_size 0x%x table_tcm 0x%08x \r\n",
+                vspa_hdr->vspa_tbl_info[ctr].tbl_name, vspa_hdr->vspa_tbl_info[ctr].tbl_size,
+				vspa_hdr->vspa_tbl_info[ctr].tbl_tcm_loc);
+		hexdump((uint8_t * )vspa_hdr->vspa_tbl_info[ctr].tbl_tcm_loc,vspa_hdr->vspa_tbl_info[ctr].tbl_size);
+
+    }
+
+	return 0;
+}
+#endif //TURN_ON_STANDALONE_MODE

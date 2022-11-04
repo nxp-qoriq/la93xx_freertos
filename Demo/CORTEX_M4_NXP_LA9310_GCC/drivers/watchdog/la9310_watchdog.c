@@ -1,21 +1,23 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2017, 2021 NXP
+ * Copyright 2017, 2021-2022 NXP
  */
 
 #include "la9310_watchdog.h"
 #include "la9310_edmaAPI.h"
 #include "la9310_irq.h"
 #include "la9310_gpio.h"
-extern uint32_t BootSource;
 
 int iWdogEnable( uint32_t wdog_load_val,
                  struct la9310_info * pLa9310Info )
 {
-    struct la9310_msi_info * pMsiInfo;
+	#ifdef TURN_ON_HOST_MODE
+	struct la9310_msi_info * pMsiInfo;
+	#else
+	uint8_t pin;
+	#endif
     int ret = SUCCESS;
-    uint8_t pin;
 
     edma_channel_info_t * pEdmaCh = pvPortMalloc( sizeof
                                                   ( struct edma_channel_info ) );
@@ -31,11 +33,11 @@ int iWdogEnable( uint32_t wdog_load_val,
     OUT_32( EDMA_ERQ_REG, ( 1 << WDOG_eDMA_CHANNEL ) |
             IN_32( ( uint32_t * ) EDMA_ERQ_REG ) );
 
-    if (BootSource == LA9310_BOOT_SRC_PCIE) {
+    #ifdef TURN_ON_HOST_MODE
         pMsiInfo = &pLa9310Info->msi_info[ MSI_IRQ_WDOG ];
         ret = iEdmaXferReq( ( uint32_t ) &pMsiInfo->data,
                             pMsiInfo->addr, ( uint32_t ) 4, pEdmaCh );
-    } else if (BootSource == LA9310_BOOT_SRC_I2C) {
+	#else //TURN_ON_STANDALONE_MODE
         iGpioInit( GPIO_PIN_I2C_BOOT_RESET, output, false );
         gpio_port_t * gpioport = ( struct gpio_port * ) GPIO_BASE_ADDR;
         uint32_t * p_reg = ( uint32_t * ) gpioport;
@@ -44,8 +46,7 @@ int iWdogEnable( uint32_t wdog_load_val,
         sa[ 0 ] = (uint32_t) BITS( pin );
         ret = iEdmaXferReq( ( uint32_t ) sa,( uint32_t ) ( &p_reg[ GPIO_DAT ] ),
                      ( uint32_t ) 4, pEdmaCh );
-    }
-
+	#endif
     /* WDOG Enable */
     OUT_32( WDOG_LOCK_REG, WDOG_UNLOCK );
     OUT_32( WDOG_LOAD_REG, load_value );

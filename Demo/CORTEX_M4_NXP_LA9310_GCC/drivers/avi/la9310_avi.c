@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2017, 2021 NXP
+ * Copyright 2017, 2021-2022 NXP
  */
 
 
@@ -383,8 +383,6 @@ void * iLa9310AviHandle()
 
 void * iLa9310AviInit( void )
 {
-    struct vspa_regs * pVspaRegs = NULL;
-
     log_dbg( "%s: In\n\r", __func__ );
 
     if( NULL == pAviHndlr )
@@ -401,48 +399,71 @@ void * iLa9310AviInit( void )
         }
 
         pAviHndlr->pVspaRegs = ( struct vspa_regs * ) VSPA_BASE_ADDR;
-
-        /* Register Interrupt Handler */
-        IntHndlr = La9310VSPA_IRQRelayHandler;
-
-        /* Initialize VSPA interrupt MSI handling */
-        VspaEvtHdlr.type = LA9310_EVT_TYPE_VSPA;
-        VspaEvtHdlr.mask = vLa9310AviEvtMask;
-        VspaEvtHdlr.unmask = vLa9310AviEvtUnmask;
-        VspaEvtHdlr.cookie = pLa9310Info;
-        iLa9310RegisterEvt( pLa9310Info, IRQ_EVT_VSPA_BIT, &VspaEvtHdlr );
-
-        /* Create VSPA to CM4 queues */
-        pAviHndlr->VspaToCm4QMbox0 = xQueueCreate( VSPA_CM4_Q_LEN,
-                                                   sizeof( struct avi_mbox ) );
-        pAviHndlr->VspaToCm4QMbox1 = xQueueCreate( VSPA_CM4_Q_LEN,
-                                                   sizeof( struct avi_mbox ) );
-
-        /* Create CM4 to VSPA queues */
-        pAviHndlr->Cm4ToVspaQMbox0 = xQueueCreate( VSPA_CM4_Q_LEN,
-                                                   sizeof( struct avi_mbox ) );
-        pAviHndlr->Cm4ToVspaQMbox1 = xQueueCreate( VSPA_CM4_Q_LEN,
-                                                   sizeof( struct avi_mbox ) );
-
-        /* Create CM4 to VSPA Q mutexes */
-        pAviHndlr->Cm4ToVspaQMutex0 = xSemaphoreCreateMutex();
-        pAviHndlr->Cm4ToVspaQMutex1 = xSemaphoreCreateMutex();
-
-        /* Enable Mailbox related Interrupts */
-        pVspaRegs = pAviHndlr->pVspaRegs;
-        OUT_32( &pVspaRegs->vspa_irqen,
-                ( IN_32( &pVspaRegs->vspa_irqen ) | VSPA_ENABLE_MAILBOX_IRQ ) );
-
-        /* Enable VSPA interrupt handling for FreeRTOS */
-        log_info( "INFO:%s: Enabling IRQ_VSPA\n\r", __func__ );
-        NVIC_SetPriority( IRQ_VSPA, VSPA_IRQ_PRIORITY );
-        NVIC_EnableIRQ( IRQ_VSPA );
-        log_info( "INFO:%s: AVI Init Done\n\r", __func__ );
     }
-
 hndl_retval:
     log_dbg( "%s: Out\n\r", __func__ );
     return pAviHndlr;
+}
+
+int iLa9310AviConfig( void )
+{
+    struct vspa_regs * pVspaRegs = NULL;
+
+    log_dbg( "%s: In\n\r", __func__ );
+
+    log_info( "INFO:%s: AVI Config Starting\n\r", __func__ );
+
+    pAviHndlr = iLa9310AviInit();
+
+    if( NULL == pAviHndlr )
+    {
+        log_err( "%s: Memory allocation failed for "
+                 "AVI\r\n", __func__ );
+        goto hndl_retval;
+    }
+
+
+    /* Register Interrupt Handler */
+    IntHndlr = La9310VSPA_IRQRelayHandler;
+
+    /* Initialize VSPA interrupt MSI handling */
+    VspaEvtHdlr.type = LA9310_EVT_TYPE_VSPA;
+    VspaEvtHdlr.mask = vLa9310AviEvtMask;
+    VspaEvtHdlr.unmask = vLa9310AviEvtUnmask;
+    VspaEvtHdlr.cookie = pLa9310Info;
+    iLa9310RegisterEvt( pLa9310Info, IRQ_EVT_VSPA_BIT, &VspaEvtHdlr );
+
+    /* Create VSPA to CM4 queues */
+    pAviHndlr->VspaToCm4QMbox0 = xQueueCreate( VSPA_CM4_Q_LEN,
+                                               sizeof( struct avi_mbox ) );
+    pAviHndlr->VspaToCm4QMbox1 = xQueueCreate( VSPA_CM4_Q_LEN,
+                                               sizeof( struct avi_mbox ) );
+
+    /* Create CM4 to VSPA queues */
+    pAviHndlr->Cm4ToVspaQMbox0 = xQueueCreate( VSPA_CM4_Q_LEN,
+                                               sizeof( struct avi_mbox ) );
+    pAviHndlr->Cm4ToVspaQMbox1 = xQueueCreate( VSPA_CM4_Q_LEN,
+                                               sizeof( struct avi_mbox ) );
+
+    /* Create CM4 to VSPA Q mutexes */
+    pAviHndlr->Cm4ToVspaQMutex0 = xSemaphoreCreateMutex();
+    pAviHndlr->Cm4ToVspaQMutex1 = xSemaphoreCreateMutex();
+
+    /* Enable Mailbox related Interrupts */
+    pVspaRegs = pAviHndlr->pVspaRegs;
+    OUT_32( &pVspaRegs->vspa_irqen,
+            ( IN_32( &pVspaRegs->vspa_irqen ) | VSPA_ENABLE_MAILBOX_IRQ ) );
+
+    /* Enable VSPA interrupt handling for FreeRTOS */
+    log_info( "INFO:%s: Enabling IRQ_VSPA\n\r", __func__ );
+    NVIC_SetPriority( IRQ_VSPA, VSPA_IRQ_PRIORITY );
+    NVIC_EnableIRQ( IRQ_VSPA );
+    log_info( "INFO:%s: AVI Init Done\n\r", __func__ );
+
+    return 0;
+hndl_retval:
+    log_dbg( "%s: Out\n\r", __func__ );
+    return 1;
 }
 
 

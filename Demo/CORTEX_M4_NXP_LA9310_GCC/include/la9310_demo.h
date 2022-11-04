@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2017-2018, 2021 NXP
+ * Copyright 2017-2018, 2021-2022 NXP
  */
 
 #ifndef __LA9310_DEMO_H__
@@ -26,8 +26,8 @@ extern void vLa9310I2CTest( uint8_t uI2C_Controller,
                             uint32_t uByteToWrite );
 
 extern void vAVIDemo( uint32_t ulNumIteration );
-
-
+extern void vProgramEEPROM(uint32_t uNumBytes);
+extern int iVerifyVSPATable();
 /*****************************************************************************
  * @vGenerateExceptions
  *
