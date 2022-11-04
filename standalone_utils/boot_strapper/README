@@ -1,0 +1,6 @@
+Compilation steps of boot strapper
+1. export the CROSS_COMPILE path of gcc-arm-none-eabi-6-2017-q2-update tool-chain
+	for e.g: export CROSS_COMPILE=/opt/gcc-arm-none-eabi-6-2017-q2-update/bin/arm-none-eabi-
+2. Inside boot strapper directory, perform make clean; make
+3. A boot_stapper.bin image will be generated in same directory. 
+4. Copy generated binary image boot_stapper.bin into firmware directory 
