@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2021 NXP
+ * Copyright 2021-2022 NXP
  */
 
 #include <fsl_dspi.h>
@@ -13,14 +13,280 @@
 #include "la9310_pinmux.h"
 #include <phytimer.h>
 
+int32_t prvMAX2870SynthWriteReg( struct LA931xDspiInstance * pDspiHandle,
+                                 uint8_t addr,
+                                 uint32_t data )
+{
+	int32_t iRet = 0,i,j=0;
+	uint8_t ucData[ 4 ] = { 0 };
+
+	data  =  (data & 0xFFFFFFF8)  |  (addr & 0x07);
+	/* Write synthesizer register */
+	for (i = 3; i >=0 ; i--) {
+		ucData[j] = (data >> ( i * 8) ) & 0xFF;
+		j++;
+	}
+
+	iRet = lDspiPush( pDspiHandle, DSPI_CS0, DSPI_DEV_WRITE,
+			  ucData, 4 );
+
+	if( 0 > iRet )
+	{
+		log_err( "%s: lDspiPush failed, error[%d]\r\n", __func__,
+		 iRet );
+	}
+
+	return iRet;
+}
+
+int32_t prvMAX2870SynthReadReg( struct LA931xDspiInstance * pDspiHandle,
+                                uint8_t addr,
+                                uint32_t * data )
+{
+    int32_t iRet = 0;
+    uint8_t ucData[ 4 ] = { 0 };
+
+    /* Push address to be read */
+    ucData[ 0 ] = addr;
+    iRet = lDspiPush( pDspiHandle, DSPI_CS0, DSPI_DEV_READ,
+                      ucData, 4 );
+
+    if( 0 > iRet )
+    {
+        log_err( "%s: lDspiPush failed, error[%d]\r\n", __func__,
+                 iRet );
+        return iRet;
+    }
+
+    iRet = lDspiPop( pDspiHandle, ucData, 4 );
+
+    if( 0 > iRet )
+    {
+        log_err( "%s: lDspiPop failed, error[%d]\r\n", __func__,
+                 iRet );
+        return iRet;
+    }
+    /* index 0 should be ignored, this is outcome
+     * of above push operation */
+    *data = (ucData[ 3 ] << 24 ) | (ucData[ 2 ] << 16 ) | (ucData[ 1 ] << 8 )| ucData[ 0 ];
+
+    return iRet;
+}
+
+int32_t prvMAX2870SelectMUX( struct LA931xDspiInstance * pDspiHandle , uint8_t bMUXSelect )
+{
+
+		/* Bits MUX[3:0] set the MUX pin.
+		*  0001: VDD
+		*  0010: GND
+		*  1100: SPI read operation
+		*
+		*  MUX[3] is bit 18 in reg5, and MUX[2:0] are bits 28:26 in reg2.
+		*/
+
+		/* 32-bits for SPI consist of 29 data bits and 3 address bits.*/
+		uint32_t usWrData = 0;
+		int32_t iRet = 0;
+
+		switch( bMUXSelect )
+		{
+
+		case MAX2870_SET_MUX_OUT_HIGH_Z:
+				/* Set MUX to High Z */
+				iRet = prvMAX2870SynthWriteReg( pDspiHandle, MAX2870_SYNTH_REG2, usWrData );
+				if( 0 > iRet )
+				return iRet;
+				iRet = prvMAX2870SynthWriteReg( pDspiHandle, MAX2870_SYNTH_REG5, usWrData );
+				if( 0 > iRet )
+				return iRet;
+				break;
+
+		case MAX2870_SET_MUX_OUT_VDD:
+				/* Set MUX to VDD */
+				usWrData |= (1 << 26);
+				iRet = prvMAX2870SynthWriteReg( pDspiHandle, MAX2870_SYNTH_REG2, usWrData );
+				if( 0 > iRet )
+				return iRet;
+				break;
+
+		case MAX2870_SET_MUX_OUT_GROUND:
+				/* Set MUX to GND */
+				usWrData |= (1<<27);
+				iRet = prvMAX2870SynthWriteReg( pDspiHandle, MAX2870_SYNTH_REG2, usWrData );
+				if( 0 > iRet )
+				return iRet;
+				break;
+
+		case MAX2870_SET_MUX_OUT_READ:
+				/* Set MUX to "read" */
+				usWrData |= (1<<18);
+				iRet = prvMAX2870SynthWriteReg( pDspiHandle, MAX2870_SYNTH_REG5, usWrData );
+				if( 0 > iRet )
+				return iRet;
+				usWrData = 0;
+				usWrData |= (1<<28);
+				iRet = prvMAX2870SynthWriteReg( pDspiHandle, MAX2870_SYNTH_REG2, usWrData );
+				if( 0 > iRet )
+				return iRet;
+				break;
+		default:
+			break;
+
+		}
+		return iRet;
+}
+
+int32_t MAX2870SynthInit(struct LA931xDspiInstance * pDspiHandle)
+{
+
+	int32_t iRet;
+	int32_t i,j;
+	const TickType_t xDelay = 20 / portTICK_PERIOD_MS;
+	uint32_t arr[]={0x01400005,0x63F332FC,0x00000133,0x8000C042,0x20037FF9,0x00266660};
+
+	/*
+	* 1. Upon power-up, all registers should be programmed twice with at least a 20ms pause
+	* between writes. The first write ensures that the device is enabled, and the second write
+	* starts the VCO selection process. Please notice that the 2 time full register programming and
+	* 20mS pause is ONLY required after power up.
+	*
+	* 2. Register programming order should be address 0x05, 0x04, 0x03, 0x02, 0x01, and 0x00.
+	*
+	* */
+
+	/*
+	*Reset MAX2870
+	*/
+	for (j = 0; j < 2; j++)
+	{
+		for (i = 5; i >= 0; i--)  /* 6 write registers */
+		{
+			iRet = prvMAX2870SynthWriteReg( pDspiHandle, i , 0 );
+			if( iRet < 0 )
+			{
+				log_err( "%s: synth write reg[%x] failed\r\n", __func__, i );
+				return iRet;
+			}
+			vTaskDelay( xDelay );
+		}
+	}
+	/* Load Configuration */
+	for (i = 5; i >= 0; i--)  /* 6 write registers */
+	{
+		log_info("-arr-:%x\n",arr[i]);
+		iRet = prvMAX2870SynthWriteReg( pDspiHandle, arr[i] , arr[i] );
+		if( iRet < 0 )
+		{
+			log_err( "%s: synth write reg[%x] failed\r\n", __func__, i );
+			return iRet;
+		}
+		vTaskDelay( xDelay );
+	}
+	return 0;
+}
+
+uint32_t MAX2870SynthTest( struct LA931xDspiInstance * pDspiHandle )
+{
+#ifdef MAX2870_SYNTH_TEST_ENABLE
+
+	/*
+	Register 0x06 can be read back through the MUX pin.
+	The user must set MUX (register 5, bit 18 and register
+	2, bits 28:26) = 1100. To begin the read sequence, set
+	LE to logic-low, send 32 periods of CLK, and set LE to
+	logic-high. While the CLK is running, the DATA pin can
+	be held at logic-high or logic-low for 29 clocks, but the
+	last 3 bits must be 110 to indicate register 6, then set LE
+	back to logic-high after the 32nd clock. Finally, send 1
+	period of the clock. The MSB of register 0x06 appears
+	after the rising edge of the next clock and continues to
+	shift out for the next 29 clock cycles (Figure 2). After the
+	LSB of register 0x06 has been read, the user can reset
+	MUX register = 0000.
+	*/
+
+	uint32_t usWrData = 0;
+	uint32_t usVal = 0;
+
+	int32_t iRet = 0;
+	uint32_t usRdData;
+
+	log_info("Reading data from MAX2870.");
+
+	iRet = prvMAX2870SelectMUX( pDspiHandle , MAX2870_SET_MUX_OUT_READ);
+	if( 0 > iRet )
+	{
+		log_err( "%s: lDspiPop failed, error[%d]\r\n", __func__,
+		iRet );
+		return iRet;
+	}
+	iRet = prvMAX2870SynthWriteReg( pDspiHandle, MAX2870_SYNTH_REG6, usWrData );
+	if( 0 > iRet )
+	{
+		log_err( "%s: lDspiPop failed, error[%d]\r\n", __func__,
+		iRet );
+		return iRet;
+	}
+
+	iRet = prvMAX2870SynthReadReg( pDspiHandle,MAX2870_SYNTH_REG6, &usRdData);
+	if( 0 > iRet )
+	{
+		log_err( "%s: lDspiPop failed, error[%d]\r\n", __func__,
+		iRet );
+		return iRet;
+	}
+
+	log_info("MAX2870  Data read: 0x%x RegaVla 0x%x\n\r" ,usRdData, usRdData & 0x7);
+
+	for( usVal = 0; usVal  < 64;usVal ++)
+	{
+		usWrData = (usVal << 26) | 0x20000000;
+		iRet = prvMAX2870SynthWriteReg( pDspiHandle, MAX2870_SYNTH_REG3, usWrData );
+		if( 0 > iRet )
+		{
+			log_err( "%s: lDspiPop failed, error[%d]\r\n", __func__,
+		 iRet );
+			return iRet;
+		}
+
+		iRet = prvMAX2870SynthReadReg( pDspiHandle,MAX2870_SYNTH_REG6, &usRdData);
+		if( 0 > iRet )
+		{
+			log_err( "%s: lDspiPop failed, error[%d]\r\n", __func__,
+		 iRet );
+			return iRet;
+		}
+
+		if(((usRdData & 0x7) == 0x6 ) && (((usRdData >> 26) & 0x3f) == usVal))
+		{
+			log_info("MAX2870 Test#%d Data read: 0x%x RegaVla 0x%x Passed" ,usVal,usRdData, usRdData & 0x7);
+		}
+		else
+		{
+			log_info("MAX2870 Test#%d Data read: 0x%x RegaVla 0x%x Failed" ,usVal,usRdData,usRdData & 0x7);
+		}
+	}
+
+	iRet = prvMAX2870SelectMUX( pDspiHandle ,MAX2870_SET_MUX_OUT_HIGH_Z );// Reset MUX pin
+	if( 0 > iRet )
+	{
+		log_err( "%s: lDspiPop failed, error[%d]\r\n", __func__,
+	 iRet );
+	return iRet;
+	}
+
+	return iRet;
+#else
+	return 0;
+#endif
+}
+
 int32_t prvLMX2582SynthWriteReg( struct LA931xDspiInstance * pDspiHandle,
                                  uint8_t addr,
                                  uint16_t data )
 {
     int32_t iRet;
     uint8_t ucData[ 4 ] = { 0 };
-
-    log_info( "%s: WriteReg[%x : %x]\r\n", __func__, addr, data );
 
     /* Write synthesizer register */
     ucData[ 0 ] = addr;
@@ -82,7 +348,6 @@ int32_t prvLTC5586DemodWriteReg( struct LA931xDspiInstance * pDspiHandle,
     uint8_t ucData[ 4 ] = { 0 };
     DspiChipSel_t eChipSelect = DSPI_CS3;
 
-    log_info( "%s: WriteReg[%x : %x]\r\n", __func__, addr, data );
     /* Read demod register before writing */
     ucData[ 0 ] = addr | LTC5586_DEMOD_READ_OPR;
     iRet = lDspiPush( pDspiHandle, eChipSelect, DSPI_DEV_READ,
@@ -293,8 +558,6 @@ int32_t prvADRF6520WriteReg( struct LA931xDspiInstance * pDspiHandle,
     int32_t iRet;
     uint8_t ucData[ 4 ] = { 0 };
 
-    log_info( "%s: WriteReg[%x : %x]\r\n", __func__, addr, data );
-
     /* Write synthesizer register */
     ucData[ 0 ] = ( uint8_t ) ( ( addr & 0xFF00 ) >> 8 );
     ucData[ 1 ] = ( uint8_t ) ( addr & 0x00FF );
@@ -328,6 +591,7 @@ int32_t ADRF6520Test( struct LA931xDspiInstance * pDspiHandle )
 
     return 0;
 }
+
 
 /* ulTestID - DSPI peripheral identifier
  *            0 - LTC5586
@@ -393,13 +657,36 @@ void vDspiTest( uint32_t ulTestID,
                 vTaskDelay( 1 );         /* Wait for more than 500 us */
             }
 
-            iRet = LMX2582SynthTest( pDspiHandle );
+	    if( iLa9310_Get_Board_Rev() == NLM_BOARD_REV_2)
+	    {
+		iRet = MAX2870SynthInit( pDspiHandle );
+		if( 0 != iRet )
+		{
+			log_err( "%s: NLM Synth init failed \r\n",
+			 __func__ );
+		}
+		iRet = MAX2870SynthTest( pDspiHandle );
+		if( 0 != iRet )
+		{
+			log_err( "%s: NLM Synth Test failed \r\n",
+			 __func__ );
+		}
+	    }
+	    else
+	    {
+		iRet = LMX2582SynthTest( pDspiHandle);
+		if( 0 != iRet )
+		{
+			log_err( "%s: NLM Synth Test failed \r\n",
+			 __func__ );
+		}
+		else
+		{
+			log_info( "%s: NLM Synth Test passed  \r\n",
+			__func__ );
 
-            if( 0 != iRet )
-            {
-                log_err( "%s: NLM Synth init failed \r\n",
-                         __func__ );
-            }
+		}
+	   }
         }
         else if( ulTestID == 2 )
         {

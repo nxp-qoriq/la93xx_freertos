@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
-** Copyright 2021 NXP
-**/
+ * Copyright 2021-2022 NXP
+ */
 
 #ifndef __NLM_DSPI_INIT_H
 #define __NLM_DSPI_INIT_H
@@ -25,6 +25,21 @@
 #define LMX2582_SYNTH_POWERDOWN    ( 1 << 0 )
 #define LMX2582_SYNTH_RESET        ( 1 << 1 )
 #define LMX2582_SYNTH_FCAL         ( 1 << 3 )
+
+#define NLM_V2_ENABLE              1
+#define MAX2870_SYNTH_REG0         0x0
+#define MAX2870_SYNTH_REG1         0x1
+#define MAX2870_SYNTH_REG2         0x2
+#define MAX2870_SYNTH_REG3         0x3
+#define MAX2870_SYNTH_REG4         0x4
+#define MAX2870_SYNTH_REG5         0x5
+#define MAX2870_SYNTH_REG6         0x6
+
+#define MAX2870_SET_MUX_OUT_HIGH_Z  0
+#define MAX2870_SET_MUX_OUT_VDD     1
+#define MAX2870_SET_MUX_OUT_GROUND  2
+#define MAX2870_SET_MUX_OUT_READ    3
+
 
 /* Function Declaration */
 
