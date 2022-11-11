@@ -142,7 +142,9 @@ int32_t MAX2870SynthInit(struct LA931xDspiInstance * pDspiHandle)
 	int32_t iRet;
 	int32_t i,j;
 	const TickType_t xDelay = 20 / portTICK_PERIOD_MS;
-	uint32_t arr[]={0x01400005,0x63F332FC,0x00000133,0x8000C042,0x20037FF9,0x00266660};
+	//uint32_t arr[]={0x00330220,0x200303e9,0x01009e42,0x00000133,0x629662fc,0x01400005};//working gnss 1575MHz
+	//uint32_t arr[]= {0x001e0220,0x200303e9,0x01009e42,0x00000133,0x621662fc,0x01400005};//working B3 1860MHZ
+	uint32_t arr[]={0x000c01a0,0x200303e9,0x01009e42,0x00000133,0x622662fc,0x01400005};//working B13 750MHz
 
 	/*
 	* 1. Upon power-up, all registers should be programmed twice with at least a 20ms pause
@@ -173,7 +175,6 @@ int32_t MAX2870SynthInit(struct LA931xDspiInstance * pDspiHandle)
 	/* Load Configuration */
 	for (i = 5; i >= 0; i--)  /* 6 write registers */
 	{
-		log_info("-arr-:%x\n",arr[i]);
 		iRet = prvMAX2870SynthWriteReg( pDspiHandle, arr[i] , arr[i] );
 		if( iRet < 0 )
 		{
