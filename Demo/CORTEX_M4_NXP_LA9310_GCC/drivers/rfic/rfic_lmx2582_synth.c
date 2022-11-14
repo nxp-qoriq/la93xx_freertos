@@ -1,8 +1,9 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright 2021 NXP
+ * Copyright 2022 NXP
  */
 #include "rfic_synth.h"
+#include "rfic_lmx2582_synth.h"
 
 /* Default freq is 751 MHz */
 uint32_t RficSynthInitReg_u[ ] = {
@@ -20,7 +21,7 @@ uint32_t RficSynthInitReg_u[ ] = {
     0x010809, 0x002218
 };
 
-int32_t RficSynthWriteReg( RficDevice_t *pRficDev, uint8_t addr, uint16_t data )
+int32_t Rficlmx2582WriteReg( RficDevice_t *pRficDev, uint8_t addr, uint16_t data )
 {
     int32_t iRet;
     uint8_t ucData[ 4 ] = { 0 };
@@ -42,7 +43,7 @@ int32_t RficSynthWriteReg( RficDevice_t *pRficDev, uint8_t addr, uint16_t data )
     return iRet;
 }
 
-int32_t RficSynthReadReg( RficDevice_t *pRficDev, uint8_t addr, uint16_t *data )
+int32_t Rficlmx2582ReadReg( RficDevice_t *pRficDev, uint8_t addr, uint16_t *data )
 {
     int32_t iRet;
     uint8_t ucData[ 4 ] = { 0 };
@@ -74,7 +75,7 @@ int32_t RficSynthReadReg( RficDevice_t *pRficDev, uint8_t addr, uint16_t *data )
     return iRet;
 }
 
-void RficSynthAdjustPllFreq( RficDevice_t *pRficDev, int32_t freq_khz )
+void Rficlmx2582AdjustPllFreq( RficDevice_t *pRficDev, int32_t freq_khz )
 {
     int32_t ch_divider ;
     int16_t N_divider ;
@@ -90,7 +91,7 @@ void RficSynthAdjustPllFreq( RficDevice_t *pRficDev, int32_t freq_khz )
     uint16_t mux_out_a_reg_val;
     uint16_t buf_vco_out_reg_val;
 
-    RficSynthReadReg( pRficDev, RFIC_SYNTH_CH_DIV_SEG_REG, &temp_R35 );
+    Rficlmx2582ReadReg( pRficDev, RFIC_SYNTH_CH_DIV_SEG_REG, &temp_R35 );
     temp_F_Num = 0;
     prescalar = 2;
     pre_r = 2;
@@ -164,29 +165,29 @@ void RficSynthAdjustPllFreq( RficDevice_t *pRficDev, int32_t freq_khz )
         buf_vco_out_reg_val = 0x0401;
     }
 
-    RficSynthWriteReg( pRficDev, RFIC_SYNTH_BUF_CH_DIV_REG, buf_ch_div_reg_val );
-    RficSynthWriteReg( pRficDev, RFIC_SYNTH_MUX_OUT_A_REG, mux_out_a_reg_val );
-    RficSynthWriteReg( pRficDev, RFIC_SYNTH_BUF_VCO_OUT_REG, buf_vco_out_reg_val );
-    RficSynthWriteReg( pRficDev, RFIC_SYNTH_CH_DIV_SEG_REG, temp_R35 );
+    Rficlmx2582WriteReg( pRficDev, RFIC_SYNTH_BUF_CH_DIV_REG, buf_ch_div_reg_val );
+    Rficlmx2582WriteReg( pRficDev, RFIC_SYNTH_MUX_OUT_A_REG, mux_out_a_reg_val );
+    Rficlmx2582WriteReg( pRficDev, RFIC_SYNTH_BUF_VCO_OUT_REG, buf_vco_out_reg_val );
+    Rficlmx2582WriteReg( pRficDev, RFIC_SYNTH_CH_DIV_SEG_REG, temp_R35 );
 
     /* INTEGER PART OF N DIVIDER */
-    RficSynthReadReg( pRficDev, RFIC_SYNTH_INT_N_DIV_REG, &temp_N_divider );
+    Rficlmx2582ReadReg( pRficDev, RFIC_SYNTH_INT_N_DIV_REG, &temp_N_divider );
     temp_N_divider = temp_N_divider & RFIC_SYNTH_MASK_INT_N_DIV;
     temp_N_divider = temp_N_divider | ( N_divider << 1 );
-    RficSynthWriteReg( pRficDev, RFIC_SYNTH_INT_N_DIV_REG, temp_N_divider );
+    Rficlmx2582WriteReg( pRficDev, RFIC_SYNTH_INT_N_DIV_REG, temp_N_divider );
 
     /* NUMERATOR OF FRACTION */
     temp_F_Num |= F_Num;
-    RficSynthWriteReg( pRficDev, RFIC_SYNTH_NUM_LSB_N_DIV_FRAC_REG, temp_F_Num );
+    Rficlmx2582WriteReg( pRficDev, RFIC_SYNTH_NUM_LSB_N_DIV_FRAC_REG, temp_F_Num );
     temp_F_Num = 0;
     F_Num >>= 16;
     temp_F_Num |= F_Num;
-    RficSynthWriteReg( pRficDev, RFIC_SYNTH_NUM_MSB_N_DIV_FRAC_REG, temp_F_Num );
+    Rficlmx2582WriteReg( pRficDev, RFIC_SYNTH_NUM_MSB_N_DIV_FRAC_REG, temp_F_Num );
 
     /* CALIBRATION */
-    RficSynthReadReg( pRficDev, 0x00, &dbg_reg );
+    Rficlmx2582ReadReg( pRficDev, 0x00, &dbg_reg );
     dbg_reg = dbg_reg | ( 1 << 3 );
-    RficSynthWriteReg( pRficDev, 0x00,dbg_reg );
+    Rficlmx2582WriteReg( pRficDev, 0x00,dbg_reg );
 
     /* DEBUG */
 #ifdef DEBUG
@@ -199,7 +200,7 @@ void RficSynthAdjustPllFreq( RficDevice_t *pRficDev, int32_t freq_khz )
 		&& (i != 27) && !(i >= 49 && i <=58 ) && (i != 60)
 		&& (i != 63) )
             {
-                RficSynthReadReg( pRficDev, i, &dbg_reg );
+                Rficlmx2582ReadReg( pRficDev, i, &dbg_reg );
                 log_info(" %x : %x\r\n", i, dbg_reg);
             }
         }
@@ -207,17 +208,17 @@ void RficSynthAdjustPllFreq( RficDevice_t *pRficDev, int32_t freq_khz )
 #endif
 }
 
-void RficSynthAdjustPllFastCal(RficDevice_t *pRficDev)
+void Rficlmx2582AdjustPllFastCal(RficDevice_t *pRficDev)
 {
     uint16_t dbg_reg;
-    RficSynthReadReg( pRficDev, 0x40, &dbg_reg );
+    Rficlmx2582ReadReg( pRficDev, 0x40, &dbg_reg );
     dbg_reg = dbg_reg | ( 1 << 8 ) | (1 << 9);
-    RficSynthWriteReg( pRficDev, 0x40,dbg_reg );
+    Rficlmx2582WriteReg( pRficDev, 0x40,dbg_reg );
     log_dbg( "%s: \r\n", __func__);
     log_info("dbg_reg %x \r\n", dbg_reg);
 }
 
-int32_t RficSynthInit( RficDevice_t *pRficDev )
+int32_t Rficlmx2582Init( RficDevice_t *pRficDev )
 {
     int32_t iRet;
     uint16_t usData;
@@ -225,7 +226,7 @@ int32_t RficSynthInit( RficDevice_t *pRficDev )
 
     /* soft reset */
     usData = RFIC_SYNTH_RESET;
-    iRet = RficSynthWriteReg( pRficDev, RFIC_SYNTH_REG0, usData );
+    iRet = Rficlmx2582WriteReg( pRficDev, RFIC_SYNTH_REG0, usData );
     if( iRet < 0 )
     {
         log_err( "%s: synth write reg[%x] failed\r\n", __func__, RFIC_SYNTH_REG0 );
@@ -238,7 +239,7 @@ int32_t RficSynthInit( RficDevice_t *pRficDev )
         ucReg = (( RficSynthInitReg_u[ i ] & RFIC_SYNTH_ADDR_MASK ) >> 16 );
         usData = RficSynthInitReg_u[ i ] & RFIC_SYNTH_DATA_MASK;
 
-        iRet = RficSynthWriteReg( pRficDev, ucReg, usData );
+        iRet = Rficlmx2582WriteReg( pRficDev, ucReg, usData );
         if( iRet < 0 )
         {
             log_err( "%s: synth write reg[%x] failed\r\n", __func__, ucReg );

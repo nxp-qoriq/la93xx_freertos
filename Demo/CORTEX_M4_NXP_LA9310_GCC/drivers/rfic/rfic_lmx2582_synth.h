@@ -1,17 +1,11 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright 2021 NXP
+ * Copyright 2022 NXP
  */
-#ifndef __RFIC_SYNTH_H
-#define __RFIC_SYNTH_H
-
-# include "FreeRTOS.h"
-# include "rfic_core.h"
-# include "fsl_dspi.h"
+# include "rfic_synth.h"
 /*
  * Macro Definition
  */
-#define RFIC_SYNTH_DEFAULT_FREQ  ( 751000 )
 #define RFIC_SYNTH_READ_OPR      ( 1 << 7 )
 #define RFIC_SYNTH_ADDR_MASK     ( 0x00FF0000 )
 #define RFIC_SYNTH_DATA_MASK     ( 0x0000FFFF )
@@ -35,17 +29,15 @@
 #define RFIC_SYNTH_CHDIV_SEG1               ( 2 )
 #define RFIC_SYNTH_CHDIV_SEG2_EN            ( 7 )
 #define RFIC_SYNTH_CHDIV_SEG2               ( 9 )
-#define RFIC_SYNTH_OSC_FREQ                 ( 122880 )
 
 /*
  * Function Declaration
  */
-int32_t RficSynthInit( RficDevice_t *pRficDev );
-int32_t RficSynthReadReg( RficDevice_t *pRficDev, uint8_t addr,
+int32_t Rficlmx2582Init( RficDevice_t *pRficDev );
+int32_t Rficlmx2582ReadReg( RficDevice_t *pRficDev, uint8_t addr,
 			  uint16_t *data );
-int32_t RficSynthWriteReg( RficDevice_t *pRficDev, uint8_t addr,
+int32_t Rficlmx2582WriteReg( RficDevice_t *pRficDev, uint8_t addr,
 			   uint16_t data );
-void RficSynthAdjustPllFreq( RficDevice_t *pRficDev, int32_t freq_khz );
-void RficSynthAdjustPllFastCal(RficDevice_t *pRficDev);
+void Rficlmx2582AdjustPllFreq( RficDevice_t *pRficDev, int32_t freq_khz );
+void Rficlmx2582AdjustPllFastCal(RficDevice_t *pRficDev);
 
-#endif //__RFIC_SYNTH_H
