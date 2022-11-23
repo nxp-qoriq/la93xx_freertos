@@ -59,7 +59,7 @@ enum eLa9310TestCmdID
     TEST_RFIC = 13,
     TEST_PPS_INT_PHY_COMP = 14,
     TEST_BUSYDELAY_ACCURACY =15,
-    TEST_EEPROM_PROGRAM =16,
+    TEST_UNSUPPORTED =16,
     TEST_OVERLAY =17,
     TEST_VSPA_TABLES =18,
     MAX_TEST_CMDS
@@ -82,15 +82,17 @@ enum eLa9310TestCmdID
 static const char cCmdDescriptinArr[ MAX_TEST_CMDS ][ MAX_CMD_DESCRIPTION_SIZE ] =
 {
     " invokes help ( test help )",
+#ifdef TURN_ON_HOST_MODE
     " To test GPIO( test 1 pin_num dir high_low)",
+#endif
     " To test eDMA ( test 2)",
     " To test I2C (test 3  i2c_ctrl rw add reg_num tx_len num_bye bytesWr)",
     " To test AVI ( test 4 num_iterration )",
     " To test EXCEPTION ( test 5)",
     " To test DSPI ( test 6 <testid - 0/1/2 (LTC5586/LMX2582/ADRF6520) > <mode - 0/1 (GPIO/PA_EN)>)",
     " To test Watch Dog (test 7)",
-    " To PCI REG DUMP (test 8)",
 #ifdef TURN_ON_HOST_MODE
+    " To PCI REG DUMP (test 8)",
     " To test BBDEV IPC RAW ops validation (test 9 <mode - latency/validation>)",
     " To raise MSI (test 10 <msi number>)",
 #endif    
@@ -100,10 +102,10 @@ static const char cCmdDescriptinArr[ MAX_TEST_CMDS ][ MAX_CMD_DESCRIPTION_SIZE ]
 #endif
     " To enable/disable phy timer pps_in interrupt (test 14 0/1)",
     " To test busy delay accuracy using phy timer(test 15)",
-    " To program eeprom (test 16 num_bytes)",
+#ifdef TURN_ON_STANDALONE_MODE
     " To load vspa overlay (test 17 ovl_num (1/2 (.overlay_1/.overlay_2)",
     " To verify vspa table (test 18)"
-
+#endif
 };
 
 
@@ -396,11 +398,6 @@ static portBASE_TYPE prvNLMTest( char * pcWriteBuffer,
 		#endif
 
 		#ifdef TURN_ON_STANDALONE_MODE
-		case TEST_EEPROM_PROGRAM:
-			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
-			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
-			vProgramEEPROM(ulTempVal2);
-			break;
 		case TEST_OVERLAY:
 			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
 			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );

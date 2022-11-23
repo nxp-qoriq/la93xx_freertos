@@ -432,48 +432,6 @@ void vLa9310GpioTest( uint8_t iGpioNum,
     }
 }
 #ifdef TURN_ON_STANDALONE_MODE
-void vProgramEEPROM(uint32_t uNumBytes)
-{
-	struct vspa_image_hdr *vspa_hdr;
-	uint8_t *vspa_bin_ptr;
-	unsigned int num_sections;
-	uint32_t num_iteration,itr;
-	int ret;
-	uint32_t uVspaHdrEEPROMAddr;
-
-	ret = iGetExtTableInfo(EXT_VSPA_BIN_EEPROM_ADDR,&uVspaHdrEEPROMAddr);
-	if(ret != 0 )
-		log_info("%s Invalid uVspaHdrEEPROMAddr 0x%x \r\n",__func__,uVspaHdrEEPROMAddr);
-
-	vspa_hdr = (struct vspa_image_hdr * )(( uint32_t ) TCMU_PHY_ADDR + 0x1000);
-	num_sections = vspa_hdr->num_sections;
-	log_info("num_sections %d byte to program %d\r\n",vspa_hdr->num_sections,uNumBytes);
-	for(int ctr = 0 ; ctr < num_sections; ctr++)
-	{
-			log_info("sectionName %s is_overlay %d dmem_addr 0x%08x byte_cnt 0x%08x xfr_ctrl = 0x%08x eeprom_rel_addr_offsetr 0x%08x \r\n",
-			vspa_hdr->dma_sec_info[ctr].section_name, vspa_hdr->dma_sec_info[ctr].is_overlay,
-			vspa_hdr->dma_sec_info[ctr].dmem_addr,
-			vspa_hdr->dma_sec_info[ctr].byte_cnt,vspa_hdr->dma_sec_info[ctr].xfr_ctrl,
-			vspa_hdr->dma_sec_info[ctr].xfr_ctrl,vspa_hdr->dma_sec_info[ctr].eeprom_rel_addr_offset);
-	}
-
-	num_iteration   = uNumBytes /4 ;
-	vspa_bin_ptr = (uint8_t *) (TCMU_PHY_ADDR + 0x1000);
-	hexdump ( (unsigned char *) (TCMU_PHY_ADDR + 0x1000) , uNumBytes);
-	for(itr = 0; itr < num_iteration; itr++)
-	{
-		ret = iLa9310_I2C_Write( LA9310_FSL_I2C1,IC2_EEPROM_DEV_ADDR ,uVspaHdrEEPROMAddr + (itr * MAX_EEPROM_READ_SIZE ),
-		LA9310_I2C_DEV_OFFSET_LEN_2_BYTE, vspa_bin_ptr + (itr * MAX_EEPROM_READ_SIZE ), MAX_EEPROM_READ_SIZE );
-		if(ret < 1)
-		{
-			log_err("Fail to write eeprom\r\n");
-		}
-	}
-	memset(vspa_bin_ptr, 0x00, uNumBytes);
-	hexdump ( (unsigned char *) (TCMU_PHY_ADDR + 0x1000) , 64);
-	CopyToTCM("Program EEPROM,",(uint32_t) (TCMU_PHY_ADDR + 0x1000), uVspaHdrEEPROMAddr,uNumBytes);
-}
-
 int iVerifyVSPATable()
 {
     void * dtcm_addr;
