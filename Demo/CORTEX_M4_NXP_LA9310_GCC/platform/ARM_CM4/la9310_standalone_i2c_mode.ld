@@ -19,8 +19,8 @@ MEMORY
 {
   m_startup		(RX)  : ORIGIN = 0x1F801000, LENGTH = 0x00000100
   m_interrupts          (RX)  : ORIGIN = 0x1F801100, LENGTH = 0x00000240
-  m_text                (RX)  : ORIGIN = 0x1F801340, LENGTH = 0x0000D800
-  m_data                (RW)  : ORIGIN = 0x1F80EB40, LENGTH = 0x00008000
+  m_text                (RX)  : ORIGIN = 0x1F801340, LENGTH = 0x00016CC0
+  m_data                (RW)  : ORIGIN = 0x1F818000, LENGTH = 0x00008000
   m_dtcm		(RW)  : ORIGIN = 0x20000000, LENGTH = 0x0000F000
   br_data               (R)   : ORIGIN = 0x2000F000, LENGTH = 0x00001000
 }
@@ -182,6 +182,5 @@ SECTIONS
   .ARM.attributes 0 : { *(.ARM.attributes) }
 
   /*Does m_data overlaps HIF? */
-  ASSERT(__StackTop < 0x1F81C000, "m_data overlaps to HIF")
   ASSERT(__StackLimit >= __HeapLimit, "region m_data overflowed with stack and heap")
 }
