@@ -193,7 +193,7 @@ if(LA9310_TURN_ON_COMMAND_LINE)
         "${ProjDirPath}/utils/FreeRTOS-Plus-CLI-Source/FreeRTOS_CLI.c"
         "${ProjDirPath}/utils/la9310_nlm_test_command.c"
         "${ProjDirPath}/utils/UARTCommandConsole.c"
-	#"${ProjDirPath}/drivers/timesync/sync_timing_device_cli.c"
+        "${ProjDirPath}/drivers/timesync/sync_timing_device_cli.c"
       )
 endif()
 

@@ -413,11 +413,9 @@ int iInitHandler ( void )
     #endif
     #endif //TURN_ON_STANDALONE_MODE
 
-#ifdef LA9310_SYNC_TIME_MODE
     #ifdef LA9310_ENABLE_COMMAND_LINE
         vRegisterTimesyncCLICommands();
     #endif
-#endif //LA9310_SYNC_TIME_MODE
 
     irc = SUCCESS;
 
