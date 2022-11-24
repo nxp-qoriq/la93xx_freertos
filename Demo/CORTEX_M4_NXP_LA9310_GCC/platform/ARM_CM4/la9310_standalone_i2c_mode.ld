@@ -13,14 +13,21 @@ ENTRY(m4_startup)
 STACK_SIZE = 0x1000;
 HEAP_SIZE = 0x200;
 
-/* Specify the memory areas */
+/* (i) MEMORY section specify the various  memory areas,
+ *     uses by various section both in TCML(aka ITCM) and TCMU(aka DTCM).
+ * (ii) TCML contains freeRTOS image text,data and HIF section.
+ * (iii) Standalone mode boots over i2c EEPROM, whose size may vary.
+ *       Below memory map is for 256KBye EEPROM.
+ * (iv) When needed to boots with different size EEPROM, change memory map
+        accordingly to fit into EEPROM and TCML.
+*/
 
 MEMORY
 {
   m_startup		(RX)  : ORIGIN = 0x1F801000, LENGTH = 0x00000100
   m_interrupts          (RX)  : ORIGIN = 0x1F801100, LENGTH = 0x00000240
-  m_text                (RX)  : ORIGIN = 0x1F801340, LENGTH = 0x00016CC0
-  m_data                (RW)  : ORIGIN = 0x1F818000, LENGTH = 0x00008000
+  m_text                (RX)  : ORIGIN = 0x1F801340, LENGTH = 0x00011C00
+  m_data                (RW)  : ORIGIN = 0x1F812F40, LENGTH = 0x00009000
   m_dtcm		(RW)  : ORIGIN = 0x20000000, LENGTH = 0x0000F000
   br_data               (R)   : ORIGIN = 0x2000F000, LENGTH = 0x00001000
 }
@@ -190,5 +197,6 @@ SECTIONS
   .ARM.attributes 0 : { *(.ARM.attributes) }
 
   /*Does m_data overlaps HIF? */
+  ASSERT(__StackTop < 0x1F81C000, "m_data overlaps to HIF")
   ASSERT(__StackLimit >= __HeapLimit, "region m_data overflowed with stack and heap")
 }
