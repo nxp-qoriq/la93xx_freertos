@@ -31,8 +31,10 @@ SECTIONS
   .startup :
   {
     . = ALIGN(4);
+    __m_startup_start = .;      /* create a global symbol at m_startup start */
     KEEP(*(.start_up))
     . = ALIGN(4);
+    __m_startup_end = .;      /* create a global symbol at m_startup end */
   } > m_startup
 
   /* The startup code goes first into internal RAM */
@@ -40,14 +42,17 @@ SECTIONS
   {
     __VECTOR_TABLE = .;
     . = ALIGN(4);
+    __m_interrupts_start = .;      /* create a global symbol at interrupts start */
     KEEP(*(.isr_vector))     /* Startup code */
     . = ALIGN(4);
+    __m_interrupts_end = .;      /* create a global symbol at interrupts end */
   } > m_interrupts
 
   /* The program code and other data goes into internal RAM */
   .text :
   {
     . = ALIGN(4);
+    __m_text_start = .;      /* create a global symbol at text start */
     *(.text)                 /* .text sections (code) */
     *(.text*)                /* .text* sections (code) */
     *(.rodata)               /* .rodata sections (constants, strings, etc.) */
@@ -128,6 +133,7 @@ SECTIONS
     KEEP (*(SORT(.fini_array.*)))
     KEEP (*(.fini_array*))
     PROVIDE_HIDDEN (__fini_array_end = .);
+    __m_text_end = .;      /* create a global symbol at text end */
   } > m_text
 
   __etext = .;    /* define a global symbol at end of code */
@@ -137,6 +143,7 @@ SECTIONS
     . = ALIGN(4);
     __DATA_RAM = .;
     __data_start__ = .;      /* create a global symbol at data start */
+    __m_data_start = .;      /* create a global symbol at data start */
     *(.data)                 /* .data sections */
     *(.data*)                /* .data* sections */
     KEEP(*(.jcr*))
@@ -173,6 +180,7 @@ SECTIONS
   {
     . = ALIGN(8);
     . += STACK_SIZE;
+    __m_data_end = .;        /* define a global symbol at data end */
   } > m_data
    /* Initializes stack on the end of block */
   __StackTop   = ORIGIN(m_data) + LENGTH(m_data);
