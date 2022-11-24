@@ -148,7 +148,7 @@ void xRficProcessReadReg( RficDevice_t *pRficDev, rf_sw_cmd_desc_t *pSwCmdDesc )
 {
     struct sw_cmddata_reg_opr *CmdData;
     int32_t iRet = 0;
-    uint16_t val16;
+    uint32_t val32;
     uint8_t val8;
 
     CmdData = ( struct sw_cmddata_reg_opr * )&pSwCmdDesc->data[0];
@@ -166,8 +166,8 @@ void xRficProcessReadReg( RficDevice_t *pRficDev, rf_sw_cmd_desc_t *pSwCmdDesc )
     if( RF_DSPI_SLV_SYNTH == CmdData->dspi_slv_id )
     {
         iRet = RficSynthReadReg( pRficDev, ( uint8_t )CmdData->addr,
-                                 &val16 );
-        CmdData->val = val16;
+                                 &val32 );
+        CmdData->val = val32;
     }
     else if( RF_DSPI_SLV_VGA == CmdData->dspi_slv_id )
         CmdData->val = pRficDev->xVgaRegVal;
@@ -212,7 +212,7 @@ void xRficProcessWriteReg( RficDevice_t *pRficDev, rf_sw_cmd_desc_t *pSwCmdDesc 
     /* Call the respective write register */
     if( RF_DSPI_SLV_SYNTH == CmdData->dspi_slv_id )
         iRet = RficSynthWriteReg( pRficDev, ( uint8_t )CmdData->addr,
-                                 ( uint16_t )CmdData->val );
+                                 ( uint32_t )CmdData->val );
     else if( RF_DSPI_SLV_VGA == CmdData->dspi_slv_id )
         iRet = RficVgaWriteReg( pRficDev, ( uint8_t )CmdData->val );
     else if ( RF_DSPI_SLV_DEMOD == CmdData->dspi_slv_id )

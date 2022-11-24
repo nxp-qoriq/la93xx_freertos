@@ -292,7 +292,6 @@ static portBASE_TYPE prvNLMTest( char * pcWriteBuffer,
                             log_err( "%s: Fast cal API Failed ,ret  %d\n\r", __func__, ret );
                         break;
 
-                    #ifdef TURN_ON_STANDALONE_MODE
                     case RFIC_IQ_DUMP:
                         if (ulTempVal3 < 1 || ulTempVal3 > 10)
                         {
@@ -309,7 +308,6 @@ static portBASE_TYPE prvNLMTest( char * pcWriteBuffer,
                     case RFIC_GET_VALUES:
                         xRficGetRFConf( pRficDev );
                         break;
-                    #endif
 
 					default:
 						log_err("%s: Invalid Command Id - %d\n\r", __func__, ulTempVal2 );

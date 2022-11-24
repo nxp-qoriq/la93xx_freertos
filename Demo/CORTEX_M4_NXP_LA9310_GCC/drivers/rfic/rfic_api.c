@@ -218,7 +218,6 @@ RficResp_t xRficAdrfGainCtrl(RficHandle_t handle, uint8_t gain)
     return RFIC_SUCCESS;
 }
 
-#ifdef TURN_ON_STANDALONE_MODE
 RficResp_t xRficIQDump( RficHandle_t handle, uint32_t size )
 {
     RficDevice_t *pRficDev = (RficDevice_t *)handle;
@@ -273,4 +272,3 @@ void xRficGetRFConf( RficHandle_t handle )
     PRINTF( "Configured vga dac2 is %d \r\n", pRficDev->pRfHif->rf_priv_mdata.vga_dac2_val);
 
 }
-#endif

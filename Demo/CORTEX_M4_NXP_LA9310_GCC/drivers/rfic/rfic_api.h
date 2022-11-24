@@ -102,7 +102,6 @@ RficResp_t xRficAdrfGainCtrl(RficHandle_t handle, uint8_t gain);
  */
 RficResp_t xRficFastCal( RficHandle_t handle );
 
-#ifdef TURN_ON_STANDALONE_MODE
 /*!
  * @brief xRficIQDump
  * Dump IQ samples on console after receiving response from VSPA
@@ -124,5 +123,4 @@ RficResp_t xRficIQDump( RficHandle_t handle, uint32_t size);
  *
  */
 void xRficGetRFConf( RficHandle_t handle);
-#endif //TURN_ON_STANDALONE_MODE
 #endif //__RFIC_API_H

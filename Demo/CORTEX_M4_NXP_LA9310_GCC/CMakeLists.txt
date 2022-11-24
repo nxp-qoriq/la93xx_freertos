@@ -205,6 +205,8 @@ if(RFIC)
         "${ProjDirPath}/drivers/rfic/rfic_api.c"
         "${ProjDirPath}/drivers/rfic/rfic_vga.c"
         "${ProjDirPath}/drivers/rfic/rfic_synth.c"
+        "${ProjDirPath}/drivers/rfic/rfic_lmx2582_synth.c"
+        "${ProjDirPath}/drivers/rfic/rfic_max2870_synth.c"
         "${ProjDirPath}/drivers/rfic/rfic_demod.c"
         "${ProjDirPath}/drivers/rfic/rfic_cmd.c"
         "${ProjDirPath}/drivers/rfic/rfic_dac.c"
