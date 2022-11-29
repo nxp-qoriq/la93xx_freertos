@@ -85,6 +85,8 @@ tmp_vspa_table_header_file=tmp_vtable_header.bin
 
 tmp_vspa_bin_file=tmp_vbin_out.bin
 tmp_vspa_bin_header_file=tmp_vbin_header.bin
+vspa_bin_output=vspa.bin
+vspa_table_output=vspa_table.bin
 
 print_boundary() {
 	echo ""
@@ -646,6 +648,7 @@ prepend_vspa_table_header() {
 	update_header_uint $num_image $current_header_offset $tmp_vspa_table_header_file
 	current_header_offset=$((current_header_offset+4))
 
+    rm -rf $vspa_table_output
     for vspa_file in $vspa_table_images
     do
 		# tbl_name
@@ -700,6 +703,7 @@ generate_vspa_table() {
     check_and_update_range $page $num_pages $rem_bytes $addr_shift
 	generate_body $page $num_pages $rem_bytes $hex_vspa_table $outfile_vspa_table
 	generate_xml_footer $outfile_vspa_table
+	cp -f $tmp_vspa_table_file $vspa_table_output
 	rm -rf $tmp_vspa_table_file
 }
 
@@ -864,6 +868,7 @@ generate_vspa_bin() {
 	local image_count
 	local tmpfile="readelf_output"
 
+	rm -rf $vspa_bin_output
 	image_offset=`printf "0x%x\n" $vspa_bin_offset`
 	mod=$((image_offset%write_size))
 	[ "$mod" -ne "0" ] && do_err "Unaligned vspa image offset $vspa_bin_offset"
@@ -892,6 +897,7 @@ generate_vspa_bin() {
     check_and_update_range $page $num_pages $rem_bytes $addr_shift
 	generate_body $page $num_pages $rem_bytes $hex_vspa $outfile_vspa
 	generate_xml_footer $outfile_vspa
+	cp -f $tmp_vspa_bin_file $vspa_bin_output
 	rm -rf $tmp_vspa_bin_file
 }
 
