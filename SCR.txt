@@ -27,7 +27,7 @@ LA9310_Demo
 
 Package - FreeRTOS(tm)    
 	Description: A real-time operating system (RTOS) from Real Time Engineers, Ltd.
-	Version: 9.0
+	Version: 9.0.0
 	Author: Real Time Engineers, Ltd.
 	License: Modified GPLv2.  See  la931x_freertos/License/license.txt
 	Format: source code
