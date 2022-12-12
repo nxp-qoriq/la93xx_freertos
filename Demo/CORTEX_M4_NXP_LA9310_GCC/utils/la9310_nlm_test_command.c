@@ -89,7 +89,7 @@ static const char cCmdDescriptinArr[ MAX_TEST_CMDS ][ MAX_CMD_DESCRIPTION_SIZE ]
     " To test I2C (test 3  i2c_ctrl rw add reg_num tx_len num_bye bytesWr)",
     " To test AVI ( test 4 num_iterration )",
     " To test EXCEPTION ( test 5)",
-    " To test DSPI ( test 6 <testid - 0/1/2 (LTC5586/LMX2582/ADRF6520) > <mode - 0/1 (GPIO/PA_EN)>)",
+    " To test DSPI ( test 6 <testid - 0/1/2 (LTC5586/(NLMv1-LMX2582, NLMv2-MAX2870/ADRF6520) > <mode - 0/1 (GPIO/PA_EN)>)",
     " To test Watch Dog (test 7)",
 #ifdef TURN_ON_HOST_MODE
     " To PCI REG DUMP (test 8)",

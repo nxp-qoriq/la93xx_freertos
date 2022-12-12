@@ -188,6 +188,7 @@ int32_t MAX2870SynthInit(struct LA931xDspiInstance * pDspiHandle)
 
 uint32_t MAX2870SynthTest( struct LA931xDspiInstance * pDspiHandle )
 {
+	log_info("NLMv2 MAX2870 RF_PLL can be verified either on oscilloscope or RFIC Test\r\n");
 #ifdef MAX2870_SYNTH_TEST_ENABLE
 
 	/*
