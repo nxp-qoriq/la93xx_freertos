@@ -62,6 +62,9 @@ enum eLa9310TestCmdID
     TEST_UNSUPPORTED =16,
     TEST_OVERLAY =17,
     TEST_VSPA_TABLES =18,
+#ifdef TURN_ON_STANDALONE_MODE
+    TEST_CRC=19,
+#endif
     MAX_TEST_CMDS
 };
 
@@ -104,7 +107,8 @@ static const char cCmdDescriptinArr[ MAX_TEST_CMDS ][ MAX_CMD_DESCRIPTION_SIZE ]
     " To test busy delay accuracy using phy timer(test 15)",
 #ifdef TURN_ON_STANDALONE_MODE
     " To load vspa overlay (test 17 ovl_num (1/2 (.overlay_1/.overlay_2)",
-    " To verify vspa table (test 18)"
+    " To verify vspa table (test 18)",
+    " To verify CRC of images (test 19)"
 #endif
 };
 
@@ -416,6 +420,9 @@ static portBASE_TYPE prvNLMTest( char * pcWriteBuffer,
 			break;
 		case TEST_VSPA_TABLES:
 			iVerifyVSPATable();
+			break;
+		case TEST_CRC:
+			vLa9310VerifyCRC();
 			break;
 		#endif //TURN_ON_STANDALONE_MODE
 		default:

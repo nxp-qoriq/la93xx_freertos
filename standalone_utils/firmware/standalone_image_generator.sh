@@ -32,9 +32,28 @@ vspa_table_offset="0x34000"
 #	uint32_t freertos_image_offset;
 #	uint32_t vspa_bin_location;
 #	uint32_t vspa_table_location;
+#	uint32_t bootstrapper_image_offset;
 #	uint32_t reserved;
 #	uint32_t reserved;
-#	uint32_t reserved;
+#};
+
+########################################################
+
+################### CRC Boot Header #############
+
+#struct crc_header {
+#       uint32_t crc_freertos_img;
+#       uint32_t is_valid_freertos;
+#       uint32_t size_freertos;
+#       uint32_t crc_vspa_bin;
+#       uint32_t is_valid_vspa_bin;
+#       uint32_t size_vspa_bin;
+#       uint32_t crc_vspa_table;
+#       uint32_t is_valid_vspa_table;
+#       uint32_t size_vspa_table;
+#       uint32_t crc_bootstrapper;
+#       uint32_t is_valid_bootstrapper;
+#       uint32_t size_bootstrapper;
 #};
 
 ########################################################
@@ -512,6 +531,14 @@ generate_hex() {
 	`xxd -p -c $write_size $image | sed 's/../& /g' > $outfile`
 }
 
+# magic number : 0x796573 stands for "yes" in hex.
+calculate_crc() {
+	local crc=$((0x`crc32 $1`))
+	local is_valid=$((0x796573))
+    	local sz=`ls -la $1| awk '{print $5}'`
+    	echo $crc $is_valid $sz
+}
+
 generate_bootstrap() {
 	local eh_1=0
 	local eh_2=0
@@ -521,6 +548,7 @@ generate_bootstrap() {
 	local eh_6=0
 	local eh_7=0
 	local eh_8=0
+    	local bootstrapper_image_offset=0
 
 	do_print "Generating image ($outfile_bootstrap)"
 	cleanup_this_file $outfile_bootstrap
@@ -528,9 +556,10 @@ generate_bootstrap() {
 	page=0
 	read -r addr4 addr3 addr2 addr1<<< $(get_address $page $addr_shift)
 
-	page=1
+	page=2
 	read -r saddr4 saddr3 saddr2 saddr1<<< $(get_address $page $addr_shift)
 
+    	bootstrapper_image_offset=$(($page * $write_size))
 	generate_hex $bootstrap_img $hex_bootstrap
 	sz=`xxd -p -c 1 $bootstrap_img | wc -l`
 	sz_hx=`printf "%08x\n" $sz | sed 's/../& /g' | sed 's/ *$//'`
@@ -552,7 +581,7 @@ generate_bootstrap() {
 	eh5=$(get_word_le $vspa_table_offset)
 	eh5=`echo $eh5| sed 's/../& /g' | sed 's/ *$//'`
 
-	eh6=$(get_word_le $eh6)
+	eh6=$(get_word_le $bootstrapper_image_offset)
 	eh6=`echo $eh6| sed 's/../& /g' | sed 's/ *$//'`
 
 	eh7=$(get_word_le $eh7)
@@ -561,14 +590,56 @@ generate_bootstrap() {
 	eh8=$(get_word_le $eh8)
 	eh8=`echo $eh8| sed 's/../& /g' | sed 's/ *$//'`
 
-	num_pages=$(($sz/$write_size))
+	#CRC Header
+	read crc_freertos_img is_valid_freertos size_freertos < <(calculate_crc $freertos_img)
+	read crc_vspa_bin is_valid_vspa_bin size_vspa_bin < <(calculate_crc $vspa_bin_output)
+	read crc_vspa_table is_valid_vspa_table size_vspa_table < <(calculate_crc $vspa_table_output)
+	read crc_bootstrapper is_valid_bootstrapper size_bootstrapper < <(calculate_crc $bootstrap_img)
+
+	ch1=$(get_word_le $crc_freertos_img)
+	ch1=`echo $ch1| sed 's/../& /g' | sed 's/ *$//'`
+
+	ch2=$(get_word_le $is_valid_freertos)
+	ch2=`echo $ch2| sed 's/../& /g' | sed 's/ *$//'`
+
+	ch3=$(get_word_le $size_freertos)
+	ch3=`echo $ch3| sed 's/../& /g' | sed 's/ *$//'`
+
+	ch4=$(get_word_le $crc_vspa_bin)
+	ch4=`echo $ch4| sed 's/../& /g' | sed 's/ *$//'`
+
+	ch5=$(get_word_le $is_valid_vspa_bin)
+	ch5=`echo $ch5| sed 's/../& /g' | sed 's/ *$//'`
+
+	ch6=$(get_word_le $size_vspa_bin)
+	ch6=`echo $ch6| sed 's/../& /g' | sed 's/ *$//'`
+	
+	ch7=$(get_word_le $crc_vspa_table)
+	ch7=`echo $ch7| sed 's/../& /g' | sed 's/ *$//'`
+
+	ch8=$(get_word_le $is_valid_vspa_table)
+	ch8=`echo $ch8| sed 's/../& /g' | sed 's/ *$//'`
+
+	ch9=$(get_word_le $size_vspa_table)
+	ch9=`echo $ch9| sed 's/../& /g' | sed 's/ *$//'`
+
+	ch10=$(get_word_le $crc_bootstrapper)
+	ch10=`echo $ch10| sed 's/../& /g' | sed 's/ *$//'`
+
+	ch11=$(get_word_le $is_valid_bootstrapper)
+	ch11=`echo $ch11| sed 's/../& /g' | sed 's/ *$//'`
+
+	ch12=$(get_word_le $size_bootstrapper)
+	ch12=`echo $ch12| sed 's/../& /g' | sed 's/ *$//'`
+
+        num_pages=$(($sz/$write_size))
 	rem_bytes=$(($sz - num_pages*write_size))
-	page=1
+	page=2
 	
 	slave_addr=`printf "%02x\n" $((slave_addr_orig+addr4+addr3))`
 	generate_xml_header $outfile_bootstrap $bitrate
 
-	echo "  <i2c_write addr=\"0x$slave_addr\" count=\"64\" radix=\"16\">00 00 55 AA 55 AA 00 00 00 00 00 00 00 00 $sz_a $sz_b $sz_c $sz_d $saddr1 $saddr2 $saddr3 $saddr4 00 00 80 1f 00 00 80 1f 00 00 01 00 $eh1 $eh2 $eh3 $eh4 $eh5 $eh6 $eh7 $eh8</i2c_write>" >> $outfile_bootstrap
+	echo "  <i2c_write addr=\"0x$slave_addr\" count=\"112\" radix=\"16\">00 00 55 AA 55 AA 00 00 00 00 00 00 00 00 $sz_a $sz_b $sz_c $sz_d $saddr1 $saddr2 $saddr3 $saddr4 00 00 80 1f 00 00 80 1f 00 00 01 00 $eh1 $eh2 $eh3 $eh4 $eh5 $eh6 $eh7 $eh8 $ch1 $ch2 $ch3 $ch4 $ch5 $ch6 $ch7 $ch8 $ch9 $ch10 $ch11 $ch12</i2c_write>" >> $outfile_bootstrap
 	echo "  <sleep ms=\"$sleep_time\"/>" >> $outfile_bootstrap
 	
 	generate_body $page $num_pages $rem_bytes $hex_bootstrap $outfile_bootstrap
@@ -578,7 +649,7 @@ generate_bootstrap() {
 generate_freertos() {
 	local page_header=$1
 	local page=$((page_header+1))
-    local test_page_start=0
+    	local test_page_start=0
 
 	do_print "Generating image ($outfile_frtos)"
 	cleanup_this_file $outfile_frtos
@@ -924,9 +995,6 @@ generate_combined_image() {
 #cleanup_files
 print_details
 
-if [ "$gen_bootstrap_img" = "y" ];then
-	generate_bootstrap
-fi
 
 if [ "$gen_frtos_img" = "y" ];then
 	fpage=$(($freertos_image_offset/$write_size))
@@ -947,6 +1015,10 @@ fi
 
 if [ "$gen_vspa_table" = "y" ];then
 	generate_vspa_table
+fi
+
+if [ "$gen_bootstrap_img" = "y" ];then
+	generate_bootstrap
 fi
 
 if [ "$combine_img" = "y" ];then

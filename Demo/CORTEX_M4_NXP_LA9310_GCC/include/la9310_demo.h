@@ -8,6 +8,25 @@
 #define __LA9310_DEMO_H__
 
 #include <la9310.h>
+
+#ifdef TURN_ON_STANDALONE_MODE
+struct crc_header {
+        uint32_t crc_freertos_img;
+        uint32_t is_valid_freertos;
+        uint32_t size_freertos;
+        uint32_t crc_vspa_bin;
+        uint32_t is_valid_vspa_bin;
+        uint32_t size_vspa_bin;
+        uint32_t crc_vspa_table;
+        uint32_t is_valid_vspa_table;
+        uint32_t size_vspa_table;
+        uint32_t crc_bootstrapper;
+        uint32_t is_valid_bootstrapper;
+        uint32_t size_bootstrapper;
+
+};
+extern void vLa9310VerifyCRC( void );
+#endif //TURN_ON_STANDALONE_MODE
 extern void vEvtIrqRaiseDemo( struct la9310_info * pLa9310Info );
 extern void vLa9310DemoIrqEvtRegister( struct la9310_info * pLa9310Info );
 extern void vLa9310EdmaDemo( uint32_t * pulEDMAInfo );
