@@ -114,7 +114,7 @@ struct ext_header {
    uint32_t freertos_image_offset;
    uint32_t vspa_bin_location;
    uint32_t vspa_table_location;
-   uint32_t reserved1;
+   uint32_t bootstrapper_image_offset;
    uint32_t reserved2;
    uint32_t reserved3;
 };

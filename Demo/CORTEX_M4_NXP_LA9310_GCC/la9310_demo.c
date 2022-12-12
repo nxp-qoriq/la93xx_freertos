@@ -38,6 +38,27 @@
 #define MAX_IPC_MSG_BUFF          IPC_MSG_SIZE
 #define OVERLAY_SECTION_OFFSET    0x00  /*TBD*/
 #define DEBUG_HEX_DUMP
+
+#ifdef TURN_ON_STANDALONE_MODE
+#define EXT_HEADER_OFFSET         0x20
+#define CRC_HEADER_OFFSET         0x40
+#define IS_VALID_MAGIC_NUM        0x796573
+
+enum crc_images {
+	FREERTOS_IMG	    = 0,
+	VSPA_IMG    	    = 1,
+	VSPA_TBL_IMG	    = 2,
+	BOOTSTRAPPER_IMG    = 3,
+	MAX_IMAGES          = 4
+};
+
+static const char * const crc_img_names[] = {
+	[FREERTOS_IMG]	    = "FreeRTOS img",
+	[VSPA_IMG]	    = "VSPA img",
+	[VSPA_TBL_IMG]	    = "VSPA table img",
+	[BOOTSTRAPPER_IMG]  = "BootStrapper img"
+};
+#endif //TURN_ON_STANDALONE_MODE
 /*
  * Uncomment either of following two option to run the IPC
  * test cases either in blocking mode or non-blocking mode.
@@ -98,6 +119,179 @@ static void prvDemoEvtUnmask( struct la9310_info * pLa9310Info,
 
     log_dbg( "%s: unmask, nothing to be done\n\r", __func__ );
 }
+#ifdef TURN_ON_STANDALONE_MODE
+unsigned int calculate_crc32(uint32_t start_addr, uint32_t size)
+{
+        char byte = 0;
+        unsigned int i = 0, j = 0, k = 0, bit = 0;
+        unsigned int crc = 0xFFFFFFFF, left_over = 0, nblocks = 0;
+        uint8_t ucval[MAX_EEPROM_READ_SIZE] = {0};
+
+        left_over = size % MAX_EEPROM_READ_SIZE;
+        nblocks = (size - left_over) / MAX_EEPROM_READ_SIZE;
+        for (k=0; k < nblocks; k++)
+        {
+                iLa9310_I2C_Read(LA9310_FSL_I2C1,IC2_EEPROM_DEV_ADDR,
+                                start_addr + (k * MAX_EEPROM_READ_SIZE),
+                                LA9310_I2C_DEV_OFFSET_LEN_2_BYTE, ucval, MAX_EEPROM_READ_SIZE );
+                for(i=0; i<4; i++)
+                {
+                        byte = ucval[i];
+                        for(j=0; j<8; j++)
+                        {
+                                bit = (byte ^ crc)&1;
+                                crc >>= 1;
+                                if (bit)
+                                        crc = crc^0xEDB88320;
+                                byte >>= 1;
+                        }
+                }
+        }
+        if (left_over) {
+                iLa9310_I2C_Read(LA9310_FSL_I2C1,IC2_EEPROM_DEV_ADDR,
+                                start_addr + (k * MAX_EEPROM_READ_SIZE),
+                                LA9310_I2C_DEV_OFFSET_LEN_2_BYTE, ucval, left_over);
+
+                for(i=0; i<left_over; i++)
+                {
+                        byte = ucval[i];
+                        for(j=0; j<8; j++)
+                        {
+                                bit = (byte ^ crc)&1;
+                                crc >>= 1;
+                                if (bit)
+                                        crc = crc^0xEDB88320;
+                                byte >>= 1;
+                        }
+                }
+        }
+        return ~crc;
+}
+
+void get_header_info(struct ext_header *pExtBootHeader, struct crc_header *pCrcHeader)
+{
+        uint8_t i = 0, numVar = 0;
+        uint32_t *dptr = NULL;
+        uint8_t data[MAX_EEPROM_READ_SIZE] = {0};
+        numVar = sizeof(struct ext_header) / sizeof(uint32_t);
+
+        /* Fill Extended Header */
+        dptr = (uint32_t *)pExtBootHeader;
+
+        for(i=0; i<numVar; i++)
+        {
+                iLa9310_I2C_Read(LA9310_FSL_I2C1,IC2_EEPROM_DEV_ADDR,
+                                EXT_HEADER_OFFSET + (i * MAX_EEPROM_READ_SIZE),
+                                LA9310_I2C_DEV_OFFSET_LEN_2_BYTE, data, MAX_EEPROM_READ_SIZE);
+                *dptr++ = (data[3]<<24)|(data[2]<<16)|(data[1]<<8)|(data[0]);
+        }
+        /* Fill CRC Header */
+        numVar = sizeof(struct crc_header)/sizeof(uint32_t);
+        dptr = (uint32_t *)pCrcHeader;
+
+        for(i=0; i<numVar; i++)
+        {
+                iLa9310_I2C_Read(LA9310_FSL_I2C1,IC2_EEPROM_DEV_ADDR,
+                                CRC_HEADER_OFFSET + (i * MAX_EEPROM_READ_SIZE),
+                                LA9310_I2C_DEV_OFFSET_LEN_2_BYTE, data, MAX_EEPROM_READ_SIZE);
+                *dptr++ = (data[3]<<24)|(data[2]<<16)|(data[1]<<8)|(data[0]);
+        }
+}
+
+void vLa9310VerifyCRC()
+{
+    uint8_t img_index = 0;
+    uint32_t calculated_crc = 0;
+    struct ext_header extBootHeader;
+    struct crc_header crcHeader;
+
+    get_header_info(&extBootHeader, &crcHeader);
+
+    for(img_index=0; img_index<MAX_IMAGES; img_index++)
+    {
+        log_info("Calculating CRC for %s ...\n\r",crc_img_names[img_index]);
+        switch (img_index) {
+            case FREERTOS_IMG :
+                if (crcHeader.is_valid_freertos == IS_VALID_MAGIC_NUM) {
+                    calculated_crc = calculate_crc32(
+                            (extBootHeader.freertos_image_offset + 
+                             extBootHeader.page_write_size),
+                            crcHeader.size_freertos);
+                    if (calculated_crc == crcHeader.crc_freertos_img ) {
+                        log_info("Header CRC [ 0x%x ] = Calculated CRC [ 0x%x]\n\r",
+                                crcHeader.crc_freertos_img,
+                                calculated_crc);
+                    } else {
+                        log_info("Header CRC [ 0x%x ] = Calculated CRC [ 0x%x]\n\r",
+                                crcHeader.crc_freertos_img,
+                                calculated_crc);
+                    }
+                } else {
+                    log_info("Pre-calculated CRC is not available in header.\n\r");
+                }
+                break;
+            case VSPA_IMG :
+                if (crcHeader.is_valid_vspa_bin == IS_VALID_MAGIC_NUM) {
+                    calculated_crc = calculate_crc32(
+                            (extBootHeader.vspa_bin_location),
+                            crcHeader.size_vspa_bin );
+                    if (calculated_crc == crcHeader.crc_vspa_bin ) {
+                        log_info("Header CRC [ 0x%x ] = Calculated CRC [ 0x%x]\n\r",
+                                crcHeader.crc_vspa_bin,
+                                calculated_crc);
+                    } else {
+                        log_info("Header CRC [ 0x%x ] = Calculated CRC [ 0x%x]\n\r",
+                                crcHeader.crc_vspa_bin,
+                                calculated_crc);
+                    }
+                } else {
+                    log_info("Pre-calculated CRC is not available in header.\n\r");
+                }
+                break;
+            case VSPA_TBL_IMG:
+                if (crcHeader.is_valid_vspa_table == IS_VALID_MAGIC_NUM) {
+                    calculated_crc = calculate_crc32(
+                            (extBootHeader.vspa_table_location),
+                            crcHeader.size_vspa_table );
+                    if (calculated_crc == crcHeader.crc_vspa_table ) {
+                        log_info("Header CRC [ 0x%x ] = Calculated CRC [ 0x%x]\n\r",
+                                crcHeader.crc_vspa_table,
+                                calculated_crc);
+                    } else {
+                        log_info("Header CRC [ 0x%x ] = Calculated CRC [ 0x%x]\n\r",
+                                crcHeader.crc_vspa_table,
+                                calculated_crc);
+                    }
+                } else {
+                    log_info("Pre-calculated CRC is not available in header.\n\r");
+                }
+                break;
+            case BOOTSTRAPPER_IMG:
+                if (crcHeader.is_valid_bootstrapper == IS_VALID_MAGIC_NUM) {
+                    calculated_crc = calculate_crc32(
+                            extBootHeader.bootstrapper_image_offset ,
+                            crcHeader.size_bootstrapper);
+                    if (calculated_crc == crcHeader.crc_bootstrapper ) {
+                        log_info("Header CRC [ 0x%x ] = Calculated CRC [ 0x%x]\n\r",
+                                crcHeader.crc_bootstrapper,
+                                calculated_crc);
+                    } else {
+                        log_info("Header CRC [ 0x%x ] = Calculated CRC [ 0x%x]\n\r",
+                                crcHeader.crc_bootstrapper,
+                                calculated_crc);
+                    }
+                } else {
+                    log_info("Pre-calculated CRC is not available in header.\n\r");
+                }
+                break;
+            default:
+                log_err("Invalid image index !\n\r");
+
+        };
+
+    }
+}
+#endif //TURN_ON_STANDALONE_MODE
 
 void vLa9310EdmaDemo( uint32_t * pulEDMAInfo )
 {
