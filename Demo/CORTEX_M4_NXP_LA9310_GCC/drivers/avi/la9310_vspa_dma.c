@@ -40,7 +40,7 @@ int iLoadOverlay(char *ovl_sec_name, bool bVerifyLoad)
 	{
 		if(vspa_hdr->dma_sec_info[ctr].is_overlay)
 		{
-			strncpy(ovl_name,vspa_hdr->dma_sec_info[ctr].section_name,MAX_SECTION_NAME);
+			strncpy(ovl_name,vspa_hdr->dma_sec_info[ctr].section_name,MAX_SECTION_NAME-1);
 			if(!strncmp(ovl_sec_name ,ovl_name,MAX_SECTION_NAME))
 			{
 				z_dma_req.axi_addr = vspa_hdr->dma_sec_info[ctr].axi_tcm_addr;
@@ -161,7 +161,7 @@ int iLoadVSPATablesEEPROM_To_TCM()
 		vspa_hdr->vspa_tbl_info[ctr]. tbl_tcm_loc= table_tcm_offset;
 		//copy table into TCML location
 		//vspa_hdr->vspa_tbl_info[ctr].eeprom_rel_addr_tbl_offset = eeprom_tbl_file_addr;
-		strncpy(table_name,vspa_hdr->vspa_tbl_info[ctr].tbl_name,MAX_VSPA_BIN_FILE_NAME_LEN);
+		strncpy(table_name,vspa_hdr->vspa_tbl_info[ctr].tbl_name,MAX_VSPA_BIN_FILE_NAME_LEN-1);
 		CopyToTCM(table_name,( uint32_t ) table_tcm_offset, eeprom_tbl_file_addr , vspa_hdr->vspa_tbl_info[ctr].tbl_size);
 		#ifdef DEBUG_VSPA_BOOT
 		//log_info("eeprom_tbl_file_base_address 0x%x \r\n",eeprom_tbl_file_base_address);
@@ -509,7 +509,7 @@ void LoadVSPAImage()
 	uTcmLocationFilled = VSPA_OVERLAY_TABLE_TCMU_START_LOC;
 	for(ctr = 0 ; ctr < num_sections; ctr++ )
 	{
-		strncpy(section_name,vspa_hdr->dma_sec_info[ctr].section_name,MAX_SECTION_NAME);
+		strncpy(section_name,vspa_hdr->dma_sec_info[ctr].section_name,MAX_SECTION_NAME-1);
         log_info("Section# %d SectionName %s is_overlay %d dmem_addr 0x%x byte_cnt 0x%x xfr_ctrl. 0x%x eeprom_rel_addr_offset %x\r\n",
                 ctr, section_name,vspa_hdr->dma_sec_info[ctr].is_overlay,
 				vspa_hdr->dma_sec_info[ctr].dmem_addr,vspa_hdr->dma_sec_info[ctr].byte_cnt,
