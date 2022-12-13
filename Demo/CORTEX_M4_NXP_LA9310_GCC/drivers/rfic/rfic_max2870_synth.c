@@ -9,8 +9,8 @@
 
 /* Default freq is 751 MHz */
 uint32_t Rficmax2870InitReg_u[ ] = {
-    0x000C3928, 0x2000FFF9, 0x61008042, 0x00000003,
-    0x622662FC, 0x01400005
+    0x0030E4A8, 0x20037FF9, 0x0100BE42, 0x00000003,
+    0x62A662FC, 0x01400005
 };
 
 int32_t Rficmax2870WriteReg( RficDevice_t *pRficDev, uint8_t addr, uint32_t data )
@@ -95,18 +95,26 @@ void max2870Set_DIVA(uint32_t j)
 void Rficmax2870AdjustPllFreq( RficDevice_t *pRficDev, int32_t freq_khz )
 {
 	// Determine DIVA
-	int8_t  diva = -1,iRet;
+	int8_t  diva = -1,iRet, diva_val = 1;
     int32_t fPFD,N,F;
     /* const TickType_t xDelay = 20 / portTICK_PERIOD_MS; */
 
-	if (freq_khz < 750000)
-		diva = 3;   //actual value is 8
-	else if (freq_khz < 1500000)
-		diva = 2;   //actual value is 4
-	else if (freq_khz < 3000000)
-		diva = 1;   //actual value is 2
-	else if (freq_khz <= 6000000)
-		diva = 0;   //actual value is 1
+	if (freq_khz < 750000) {
+		diva = 3;   // diva bits
+		diva_val = 8;   //actual value is 8
+    }
+	else if (freq_khz < 1500000) {
+		diva = 2;   // diva bits
+		diva_val = 4;   //actual value is 4
+    }
+	else if (freq_khz < 3000000) {
+		diva = 1;   // diva bits
+		diva_val = 2;   //actual value is 2
+    }
+	else if (freq_khz <= 6000000) {
+		diva = 0;   // diva bits
+		diva_val = 1;   //actual value is 1
+    }
 	else
 	{
 		log_info(" Bad input frequency to max2870SetFrequency\r\n");
@@ -117,10 +125,10 @@ void Rficmax2870AdjustPllFreq( RficDevice_t *pRficDev, int32_t freq_khz )
     /* Values of doubler and rdivider are choosen such that fPFD is 30.720MHz. */
     fPFD = 30720;
     F = 0;
-	N = freq_khz / fPFD;
+	N = (freq_khz * diva_val)/ fPFD;
     /* using maximum modulus values supported */
     /* Modulus value is 4095, 0.13330078125 is derived using 4095/fPFD */
-	F = ((freq_khz * 0.13330078125) - (N * 4095));
+	F = ((freq_khz * diva_val * 0.13330078125) - (N * 4095));
 
 	// Set registers for Frac-N configuration
 	max2870Set_N(N);
