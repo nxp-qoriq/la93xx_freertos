@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright 2022 NXP
+ * Copyright 2022-2023 NXP
  * All rights reserved.
  */
 #include "rfic_synth.h"
@@ -34,7 +34,7 @@ int32_t Rficmax2870WriteReg( RficDevice_t *pRficDev, uint8_t addr, uint32_t data
 		 iRet );
 	}
 
-	log_info( "%s: WriteReg[%x : %x,%x,%x,%x] data is %x\r\n", __func__, addr,ucData[0],ucData[1],ucData[2],ucData[3],data );
+	/* log_info( "%s: WriteReg[%x : %x,%x,%x,%x] data is %x\r\n", __func__, addr,ucData[0],ucData[1],ucData[2],ucData[3],data ); */
 	return iRet;
 }
 
@@ -128,24 +128,24 @@ void Rficmax2870AdjustPllFreq( RficDevice_t *pRficDev, int32_t freq_khz )
 	N = (freq_khz * diva_val)/ fPFD;
     /* using maximum modulus values supported */
     /* Modulus value is 4095, 0.13330078125 is derived using 4095/fPFD */
-	F = ((freq_khz * diva_val * 0.13330078125) - (N * 4095));
+	F = round(((freq_khz * diva_val) * 0.13330078125) - (N * 4095));
 
 	// Set registers for Frac-N configuration
 	max2870Set_N(N);
 	max2870Set_FRAC(F);
 	max2870Set_DIVA(diva);
-	log_info( "%s: N is %d and F is %d \r\n", __func__, N, F );
-	log_info( "%s: diva value is %d \r\n", __func__, diva );
+	/* log_info( "%s: N is %d and F is %d \r\n", __func__, N, F ); */
+	/* log_info( "%s: diva value is %d \r\n", __func__, diva ); */
 
 	// Update MAX registers with new frequency info
     iRet = Rficmax2870WriteReg( pRficDev, 4, Rficmax2870InitReg_u[4] );
-    log_info( "%s: WriteReg[ : %x]\r\n", __func__, Rficmax2870InitReg_u[4] );
+    /* log_info( "%s: WriteReg[ : %x]\r\n", __func__, Rficmax2870InitReg_u[4] ); */
 	if( iRet < 0 )
 	{
 		log_err( "%s: synth write reg[%x] failed\r\n", __func__, 4 );
 	}
     iRet = Rficmax2870WriteReg( pRficDev, 0, Rficmax2870InitReg_u[0] );
-    log_info( "%s: WriteReg[ : %x]\r\n", __func__, Rficmax2870InitReg_u[0] );
+    /* log_info( "%s: WriteReg[ : %x]\r\n", __func__, Rficmax2870InitReg_u[0] ); */
 	if( iRet < 0 )
 	{
 		log_err( "%s: synth write reg[%x] failed\r\n", __func__, 0 );
