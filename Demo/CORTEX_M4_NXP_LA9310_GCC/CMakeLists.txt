@@ -79,8 +79,8 @@ endif()
 # CXX MACRO
 
 # INCLUDE_DIRECTORIES
-    INCLUDE_DIRECTORIES(${ProjDirPath}/../../Source/portable/GCC/ARM_CM4)
-    INCLUDE_DIRECTORIES(${ProjDirPath}/../..//Source/include)
+    INCLUDE_DIRECTORIES(${ProjDirPath}/../../FreeRTOS-Kernel/portable/GCC/ARM_CM4)
+    INCLUDE_DIRECTORIES(${ProjDirPath}/../../FreeRTOS-Kernel/include)
     INCLUDE_DIRECTORIES(${ProjDirPath}/include)
     INCLUDE_DIRECTORIES(${ProjDirPath}/platform/ARM_CM4/include/)
     INCLUDE_DIRECTORIES(${ProjDirPath}/platform/boards/la9310/)
@@ -106,14 +106,14 @@ endif()
 
 if(TURN_ON_STANDALONE_MODE)
 SET(LA9310_SOURCES
-    "${ProjDirPath}/../../Source/portable/GCC/ARM_CM4/port.c"
-    "${ProjDirPath}/../../Source/portable/MemMang/heap_2.c"
-    "${ProjDirPath}/../../Source/croutine.c"
-    "${ProjDirPath}/../../Source/event_groups.c"
-    "${ProjDirPath}/../../Source/list.c"
-    "${ProjDirPath}/../../Source/queue.c"
-    "${ProjDirPath}/../../Source/tasks.c"
-    "${ProjDirPath}/../../Source/timers.c"
+    "${ProjDirPath}/../../FreeRTOS-Kernel/portable/GCC/ARM_CM4/port.c"
+    "${ProjDirPath}/../../FreeRTOS-Kernel/portable/MemMang/heap_2.c"
+    "${ProjDirPath}/../../FreeRTOS-Kernel/croutine.c"
+    "${ProjDirPath}/../../FreeRTOS-Kernel/event_groups.c"
+    "${ProjDirPath}/../../FreeRTOS-Kernel/list.c"
+    "${ProjDirPath}/../../FreeRTOS-Kernel/queue.c"
+    "${ProjDirPath}/../../FreeRTOS-Kernel/tasks.c"
+    "${ProjDirPath}/../../FreeRTOS-Kernel/timers.c"
     "${ProjDirPath}/drivers/serial/debug_console.c"
     "${ProjDirPath}/drivers/serial/print_scan.c"
     "${ProjDirPath}/drivers/serial/serial_ns16550.c"
@@ -146,14 +146,14 @@ SET(LA9310_SOURCES
   )
 else()
 SET(LA9310_SOURCES
-    "${ProjDirPath}/../../Source/portable/GCC/ARM_CM4/port.c"
-    "${ProjDirPath}/../../Source/portable/MemMang/heap_2.c"
-    "${ProjDirPath}/../../Source/croutine.c"
-    "${ProjDirPath}/../../Source/event_groups.c"
-    "${ProjDirPath}/../../Source/list.c"
-    "${ProjDirPath}/../../Source/queue.c"
-    "${ProjDirPath}/../../Source/tasks.c"
-    "${ProjDirPath}/../../Source/timers.c"
+    "${ProjDirPath}/../../FreeRTOS-Kernel/portable/GCC/ARM_CM4/port.c"
+    "${ProjDirPath}/../../FreeRTOS-Kernel/portable/MemMang/heap_2.c"
+    "${ProjDirPath}/../../FreeRTOS-Kernel/croutine.c"
+    "${ProjDirPath}/../../FreeRTOS-Kernel/event_groups.c"
+    "${ProjDirPath}/../../FreeRTOS-Kernel/list.c"
+    "${ProjDirPath}/../../FreeRTOS-Kernel/queue.c"
+    "${ProjDirPath}/../../FreeRTOS-Kernel/tasks.c"
+    "${ProjDirPath}/../../FreeRTOS-Kernel/timers.c"
     "${ProjDirPath}/drivers/serial/debug_console.c"
     "${ProjDirPath}/drivers/serial/print_scan.c"
     "${ProjDirPath}/drivers/serial/serial_ns16550.c"
