@@ -433,7 +433,6 @@ int main( void )
 
     /* Initialize hardware */
     vHardwareEarlyInit();
-
     BootSource = ((IN_32( ( uint32_t * ) DCR_BASE_ADDR )) >>
                    LX9310_BOOT_SRC_SHIFT) & LX9310_BOOT_SRC_MASK;
 
@@ -446,6 +445,7 @@ int main( void )
       goto out;
     }
 
+	PRINTF("FreeRTOS Kernel vesrion %s\n\r",tskKERNEL_VERSION_NUMBER);
     irc = iInitHandler();
     if ( irc )
     {
