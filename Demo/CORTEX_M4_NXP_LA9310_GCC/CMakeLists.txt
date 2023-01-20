@@ -95,7 +95,7 @@ endif()
     INCLUDE_DIRECTORIES(${LA9310_COMMON_HEADERS}/)
 if(LA9310_TURN_ON_COMMAND_LINE)
     INCLUDE_DIRECTORIES(${ProjDirPath}/utils/)
-    INCLUDE_DIRECTORIES(${ProjDirPath}/utils/FreeRTOS-Plus-CLI-Source/)
+    INCLUDE_DIRECTORIES(${ProjDirPath}/utils/FreeRTOS-Plus-CLI/)
 endif()
 if(RFIC)
     INCLUDE_DIRECTORIES(${ProjDirPath}/drivers/rfic/)
@@ -192,7 +192,7 @@ endif()
 
 if(LA9310_TURN_ON_COMMAND_LINE)
     SET(LA9310_SOURCES ${LA9310_SOURCES}
-        "${ProjDirPath}/utils/FreeRTOS-Plus-CLI-Source/FreeRTOS_CLI.c"
+        "${ProjDirPath}/utils/FreeRTOS-Plus-CLI/FreeRTOS_CLI.c"
         "${ProjDirPath}/utils/la9310_nlm_test_command.c"
         "${ProjDirPath}/utils/UARTCommandConsole.c"
         "${ProjDirPath}/drivers/timesync/sync_timing_device_cli.c"
