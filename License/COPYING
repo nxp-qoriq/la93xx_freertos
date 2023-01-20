@@ -1,0 +1,62 @@
+Following are the licenses of various folders/files of la931x_freertos 
+
+Folders	                   	   Files	                  License
+---------------------------------------------------------------------------------------------------
+common_headers		  All files	              	BSD-3 clause
+---------------------------------------------------------------------------------------------------
+Demo				  All files (except Demo/CORTEX_M4_NXP_LA9310_GCC/utils/FreeRTOS-Plus-CLI-Source/)   BSD-3 clause
+---------------------------------------------------------------------------------------------------
+standalone_utils	  All files					BSD-3 clause	
+---------------------------------------------------------------------------------------------------
+utils/FreeRTOS-Plus-CLI	  All files             MIT open source
+----------------------------------------------------------------------------------------------------
+utils/UARTCommandConsole.c						MIT open source
+utils/UARTCommandConsole.h                      MIT open source
+----------------------------------------------------------------------------------------------------
+utils/delay.c									BSD-3 clause
+utils/delay.h									BSD-3 clause
+----------------------------------------------------------------------------------------------------
+FreeRTOS-Kernel/		  All files				MIT open source
+----------------------------------------------------------------------------------------------------
+
+Including big blocks of License headers in all files blows up the
+source code with mostly redundant information.  An additional problem
+is that even the same licenses are referred to by a number of
+slightly varying text blocks (full, abbreviated, different
+indentation, line wrapping and/or white space, with obsolete address
+information, ...) which makes validation and automatic processing a nightmare.
+
+To make this easier, this driver uses a single line reference to Unique License
+Identifiers in source files as defined by the Linux Foundation's SPDX project
+(https://spdx.org/).
+
+Adding license information in this fashion, rather than adding full license
+text, can be more efficient for developers; decreases errors; and improves
+automated detection of licenses. The current set of valid, predefined SPDX
+identifiers is set forth on the SPDX License List at https://spdx.org/licenses/.
+
+la931x_freertos uses first line of the file to be SPDX tag. In case of *#!* scripts, SPDX
+tag can be placed in 2nd line of the file.
+
+For example, to label a file as subject to the BSD-3-Clause license,
+the following text would be used:
+
+SPDX-License-Identifier: BSD-3-Clause
+
+Any new file contributions in la931x_freertos shall adhere to the above scheme.
+It is also being recommended to replace the existing license text in the code
+with SPDX-License-Identifiers.
+
+
+la931x_freertos project supported license is:
+
+1. BSD 3-clause "New" or "Revised" License
+	SPDX-License-Identifier: BSD-3-Clause
+	URL: http://spdx.org/licenses/BSD-3-Clause#licenseText
+	la931x_freertos License text: License/bsd-3-clause.txt
+2. MIT Open Source License
+	URL: https://www.freertos.org/a00114.html
+	la931x_freertos License text: License/license.txt
+3. Zlib license
+	URL: https://opensource.org/licenses/Zlib
+	License text: License/zlib.txt 
