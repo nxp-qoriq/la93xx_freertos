@@ -1,31 +1,10 @@
-/* SPDX-License-Identifier: BSD-3-Clause */
-
+// SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright 2017-2018, 2021 NXP
+ * Copyright 2017-2018, 2021-2023 NXP
  *
  * Copyright 2014-2016 Freescale Semiconductor, Inc.
- *
- * This software is available to you under a choice of one of two
- * licenses.  You may choose to be licensed under the terms of the GNU
- * General Public License (GPL) Version 2, available from the file
- * COPYING in the "Demo/CORTEX_M4_NXP_RHOMBUS_GCC/include" directory of
- * this source tree or part of the FreeRTOS distribution.
- *
- * FreeRTOS is free software; you can redistribute it and/or modify it under
- * the terms of the GNU General Public License (version 2) as published by
- * the Free Software Foundation >>!AND MODIFIED BY!<< the FreeRTOS exception.
- * >>! NOTE: The modification to the GPL is included to allow you to
- * >>! distribute a combined work that includes FreeRTOS without being obliged to
- * >>! provide the source code for proprietary components outside of the FreeRTOS
- * >>! kernel.
- *
- * FreeRTOS is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE.  Full license text is available from the
- * following link: http://www.freertos.org/a00114.html
- *
  */
-
+    
 #ifndef __LA9310_PCI_H
 #define __LA9310_PCI_H
 

@@ -6,48 +6,58 @@ Release Name:       Version: 0.1
 Package:	    FreeRTOS BSP
 Release Location:   NXP mirror
 
-Common header files   
-	Description: Common header file with the host processor
-		     if LA931x connected with host over PCI
-	Version: 0.1
-	Author:  NXP
-	License: Open Source - BSD-3-Clause OR GPL-2.0 (Dual)
-	Format: source code
-	URL: la931x_freertos/common_headers
-	Location:la931x_freertos/common_headers
+--------------------------------------------
 
-LA9310_Demo  
-	Description: Set of H/W specifc Drivers and common application for NXP LA9310
-	Version: 0.1
-	Author:  NXP
-	License: Open Source - BSD-3-Clause
-	Format: source code
-	URL: la931x_freertos/Demo/CORTEX_M4_NXP_LA9310_GCC
-	Location: la931x_freertos/Demo/CORTEX_M4_NXP_LA9310_GCC
+Package:                   Common header files
+Description:               Common header file with the host processor if LA931x connected with host over PCI
+Version:                   0.1
+Author:                    NXP
+License:                   Open Source - BSD-3-Clause OR GPL-2.0 (Dual)
+Format:                    source code
+URL:                       https://github.com/nxp-qoriq/la93xx_freertos/
+Location:                  common_headers
 
-Package - FreeRTOS(tm)    
-	Description: A real-time operating system (RTOS) from Real Time Engineers, Ltd.
-	Version: 9.0.0
-	Author: Real Time Engineers, Ltd.
-	License: Modified GPLv2.  See  la931x_freertos/License/license.txt
-	Format: source code
-	URL: http://www.freertos.org
-	Location: la931x_freertos                   
+---------------------------------------------
 
-Package - standalone_utils
-	Description: utilities to create binaries for standalone boot
-	Version: 0.1
-	Author: NXP
-	License: BSD-3-Clause
-	Format: source code
-	Location: la931x_freertos/standalone_utils
+Package:                   LA9310_Demo  
+Description:               Set of H/W specifc Drivers and common application for NXP LA9310
+Version:                   0.1
+Author:                    NXP
+License:                   Open Source - BSD-3-Clause
+Format:                    source code
+URL:                       https://github.com/nxp-qoriq/la93xx_freertos/
+Location:                  Demo/CORTEX_M4_NXP_LA9310_GCC
 
+---------------------------------------------
 
+Package:                   FreeRTOS(tm)    
+Description:               A real-time operating system (RTOS) from Amazon.com, Inc. or its affiliates.
+Version:                   10.4.6
+Author:                    Amazon.com, Inc
+License:                   MIT
+Format:                    source code
+URL:                       http://www.freertos.org
+Location:                  la931x_freertos                   
 
-Firmware
-	Description: LA931x VSPA core binaries and demos pre-build binaries
-	Version: 0.1
-	Outgoing License: DN_Binary_Firmware_License_Agreement
-	Format: source code
-	Origin: NXP Proprietary
-	Location: la931x_freertos/standalone_utils/firmware
+---------------------------------------------
+
+Package:                   standalone_utils
+Description:               utilities to create binaries for standalone boot
+Version:                   0.1
+Author:                    NXP
+License:                   BSD-3-Clause
+Format:                    source code
+URL:                       https://github.com/nxp-qoriq/la93xx_freertos/
+Location:                  standalone_utils
+
+---------------------------------------------
+
+Package:                   Firmware
+Description:               LA931x VSPA core binaries and demos pre-build binaries
+Version:                   0.1
+Outgoing License:          DN_Binary_Firmware_License_Agreement
+Format:                    source code
+Origin:                    NXP Proprietary
+URL:                       https://github.com/nxp-qoriq/la93xx_freertos/
+Location:                  standalone_utils/firmware
+
