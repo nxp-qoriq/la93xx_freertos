@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2022 NXP
+ * Copyright 2022-2023 NXP
  */
 
 #include "la9310_avi.h"
@@ -520,7 +520,7 @@ void LoadVSPAImage()
     last_offset = 0;
     for(ctr = 0 ; ctr < num_sections; ctr++ )
 	{
-		strncpy(section_name,vspa_hdr->dma_sec_info[ctr].section_name,MAX_SECTION_NAME);
+		strncpy(section_name,vspa_hdr->dma_sec_info[ctr].section_name,MAX_SECTION_NAME-1);
 		if(!vspa_hdr->dma_sec_info[ctr].is_overlay)
 		{
 			z_dma_req.axi_addr = axi_addr;
