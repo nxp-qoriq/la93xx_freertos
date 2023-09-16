@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2017-2022 NXP
+ * Copyright 2017-2023 NXP
  */
 
 #include "FreeRTOS.h"
@@ -125,7 +125,7 @@ static void prvInitLa9310Info( struct la9310_info * pLa9310Info )
     pMsiInfo = &pLa9310Info->msi_info[ MSI_IRQ_MUX ];
 
     /* According to PCI bus standerd multiple MSIs are allocated consecutively*/
-    uMSIAddrVal = ( IN_32( pMsiAddrReg ) & 0x3FF );
+    uMSIAddrVal = ( IN_32( pMsiAddrReg ) & 0xFFF );
     #ifdef LS1046_HOST_MSI_RAISE
         /*This method to initialize MSI structure is non-standard and dedicated for
          * LS1046 host */
