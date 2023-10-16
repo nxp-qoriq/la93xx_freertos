@@ -1,6 +1,6 @@
 #!/bin/sh
 #SPDX-License-Identifier: GPLv2 BSD-3-Clause
-#Copyright 2022 NXP
+#Copyright 2022-2023 NXP
 
 boot_mode=pcie
 
@@ -11,8 +11,9 @@ if [ "$#" != "1" ]; then
         echo "./build_release.sh -boot_mode=pci"
 else
 	file="include/la9310_boot_mode.h"
-	unlink $file
-
+	if [ -f $file ]; then
+		unlink $file
+	fi
 	i2c_boot=`echo "$*" | grep -i "boot_mode=I2c"`
 	[ -n "$i2c_boot" ] && {
 		boot_mode=i2c
