@@ -1,6 +1,6 @@
 #!/bin/sh
-#SPDX-License-Identifier: GPLv2 BSD-3-Clause
-#Copyright 2022-2023 NXP
+#SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
+#Copyright 2022-2024 NXP
 
 boot_mode=pcie
 
@@ -29,4 +29,3 @@ else
 	fi
 fi
 make -j4
-unlink $file
