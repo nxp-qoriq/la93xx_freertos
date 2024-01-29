@@ -1,18 +1,22 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2017-2022 NXP
+ * Copyright 2017-2024 NXP
  */
 
 #ifndef __LA9310_HOST_V2H_IF_H__
 #define __LA9310_HOST_V2H_IF_H__
 
 /* Enable V2H application support */
+#ifndef RFNM
 #define NLM_ENABLE_V2H
+#endif
 
 /* Enable V2H Test Debug */
 //#define DEBUG_V2H_TEST
 
 /* Enable RUN_V2H_TEST_APP on FreeRTOS */
+#ifndef RFNM
 #define RUN_V2H_TEST_APP
+#endif
 
 /* No of buffer descriptor  in ring */
 #define V2H_MAX_BD			16
