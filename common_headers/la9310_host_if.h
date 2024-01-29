@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2017-2022 NXP
+ * Copyright 2017-2024 NXP
  */
 
 #ifndef __LA9310_HOST_IF_H__
@@ -21,7 +21,12 @@
 #define LA9310_EP_HIF_SIZE			(4 * 1024)
 #define LA9310_EP_IPC_SIZE			(16 * 1024)
 
-#define LA9310_MAX_SCRATCH_BUF_SIZE	(128 * 1024 * 1024)
+/*TODO - remove hardcoding*/
+#define LA9310_IQFLOOD_PHYS_ADDR	0xC0000000
+#define RFNM_IQFLOOD_MEMADDR 0x96400000
+#define RFNM_IQFLOOD_MEMSIZE (1024 * 1024 * 20)
+
+#define LA9310_MAX_SCRATCH_BUF_SIZE	(256 * 1024 * 1024)
 #define LA9310_MSI_MAX_CNT		8
 #define LA9310_eDMA_CHANNELS	14
 

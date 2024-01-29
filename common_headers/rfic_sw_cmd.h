@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2021-2022 NXP
+ * Copyright 2021-2024 NXP
  */
 #ifndef __RFIC_SW_CMD_H
 #define __RFIC_SW_CMD_H
@@ -44,6 +44,10 @@ typedef enum RfSwCmdId {
     RF_SW_CMD_SET_LOOPBACK,
     RF_SW_CMD_FAST_CALIB,
     RF_SW_CMD_TX_IQ_DATA,
+    RF_SW_GET_RX_DC_OFFSET,
+    RF_SW_SET_RX_DC_OFFSET,
+    RF_SW_SET_CHANNEL,
+    RF_SW_SET_IQ_IMBALANCE,
     RF_SW_CMD_END
 } RfSwCmdId_t;
 
