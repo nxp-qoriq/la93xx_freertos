@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2017-2023 NXP
+ * Copyright 2017-2024 NXP
  */
 
 #include "FreeRTOS.h"
@@ -397,7 +397,11 @@ int iInitHandler ( void )
     iLa9310AviConfig();
 
     #if __DCS
-        vDcsInit(Half_Freq);
+    #if RFNM
+    vDcsInit(Full_Freq);
+    #else
+    vDcsInit(Half_Freq);
+    #endif
     #endif
 
     #ifdef TURN_ON_HOST_MODE

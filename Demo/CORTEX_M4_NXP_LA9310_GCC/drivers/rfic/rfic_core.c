@@ -1,11 +1,14 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright 2021-2022 NXP
+ * Copyright 2021-2024 NXP
  */
 #include "rfic_core.h"
 #include "debug_console.h"
 #include "rfic_sw_cmd.h"
 #include "rfic_cmd.h"
+
+#include <rfic_avi_ctrl.h>
+#include <la9310_irq.h>
 
 #ifndef TURN_ON_STANDALONE_MODE
 BaseType_t xRficPostLocalSwCmd( RficDevice_t *pRficDev,
@@ -69,6 +72,7 @@ void vRficSwCmdIrq( RficDevice_t *pRficDev )
 }
 #endif
 
+void vRficSetIqImbalance(rf_sw_cmd_desc_t *rfic_sw_cmd);
 BaseType_t xHandleSwCmd( RficDevice_t *pRficDev, rf_sw_cmd_desc_t *pSwCmdDesc)
 {
     BaseType_t xRet = pdTRUE;
@@ -114,6 +118,22 @@ BaseType_t xHandleSwCmd( RficDevice_t *pRficDev, rf_sw_cmd_desc_t *pSwCmdDesc)
             vRficProcessIqDump(pSwCmdDesc);
             break;
 
+        case RF_SW_GET_RX_DC_OFFSET:
+            vRficGetRxDcOffset(pSwCmdDesc);
+            break;
+
+        case RF_SW_SET_RX_DC_OFFSET:
+            vRficSetDcOffset(pSwCmdDesc);
+            break;
+
+        case RF_SW_SET_IQ_IMBALANCE:
+            vRficSetIqImbalance(pSwCmdDesc);
+            break;
+
+        case RF_SW_SET_CHANNEL:
+            vRficSetChannel(pSwCmdDesc);
+            break;
+
         case RF_SW_CMD_TX_IQ_DATA:
             vRficProcessTXIqData(pSwCmdDesc);
             break;
@@ -151,7 +171,11 @@ void vRficCoreTask( void * pvParameters )
 				      RF_CORE_TASK_EVENT_MASK,
 				      pdTRUE,  //Clear all the events before returning
 				      pdFALSE, //Any event should make this API return
+#ifdef RFNM
+				      1 ); //portMAX_DELAY
+#else
 				      portMAX_DELAY );
+#endif
 	if( uxBits & RF_LOCAL_CMD_EVENT )
 	{
 	    RF_STATS_ADD( pRficDev->pRfHif->rf_stats.local_cmd_count );
@@ -179,7 +203,38 @@ void vRficCoreTask( void * pvParameters )
 	}
 	else
 	{
+#ifndef RFNM
 	    log_err( "%s: Invalid com event.\n\r", __func__ );
+#else
+	    struct avi_hndlr *avihndl = NULL;
+	    struct avi_mbox vspa_mbox;
+
+	    avihndl = iLa9310AviHandle();
+	    if( NULL != avihndl )
+	    {
+	            /* Read VSPA inbox 0 */
+	        if ( 0 == iLa9310AviHostRecvMboxFromVspa(avihndl, &vspa_mbox, 0 ))
+	        {
+	            //*((uint32_t *)(&mbox_v2h->status))  = vspa_mbox.lsb;
+	            //log_info("\r\n **V2H: MSB_LSB(Hex):%x::%x retries %d\r\n", mbox_v2h->msb32, *((uint32_t *)(&mbox_v2h->status)), retries);
+
+	            if(1 && (vspa_mbox.msb & 0xf0) == 0x80) {
+                
+	                vRaiseMsi( pLa9310Info, MSI_IRQ_FLOOD_0 );
+
+	                uint32_t *bufferStatusPtr = (uint32_t*) (0xC0000000 + (1024 * 1024 * 17));
+	                *bufferStatusPtr = vspa_mbox.msb;
+
+	                //log_info("set %p off %x to %08x \r\n", bufferStatusPtr, cmd_data->addr, *bufferStatusPtr);
+	                //log_info("received vspa interrupt???\r\n" );
+	                // vaddr = 0xC0000000;
+
+	            }
+	        }
+	    } else {
+	        log_err( "%s: iLa9310AviHandle error\n\r", __func__ );
+	    }
+#endif
 	}
     }
 }
