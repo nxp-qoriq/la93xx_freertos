@@ -1,9 +1,11 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2017, 2021-2022 NXP
+ * Copyright 2017, 2021-2024 NXP
  */
 
+#ifndef __LA9310_AVI_H__
+#define __LA9310_AVI_H__
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -83,3 +85,5 @@ void * iLa9310AviInit( void );
  */
 void * iLa9310AviHandle();
 int iLa9310AviConfig( void );
+
+#endif /* __LA9310_AVI_H__ */

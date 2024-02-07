@@ -199,6 +199,8 @@ struct hif_ipc_regs {
 #define SET_HIF_HOST_RDY(hif, RDY_MASK) (hif->host_ready |= RDY_MASK)
 #define CHK_HIF_HOST_RDY( hif, RDY_MASK )    ( hif->host_ready & RDY_MASK )
 #define SET_HIF_MOD_RDY( hif, RDY_MASK )     ( hif->mod_ready |= RDY_MASK )
+#define CLEAR_HIF_MOD_RDY( hif )	(hif->mod_ready = 0)
+#define CLEAR_HIF_HOST_RDY( hif )	(hif->host_ready = 0)
 
 /* XXX:NOTE: Always increment HIF version when you add anything in
  * struct la9310_hif. Following are rules for MAJOR/MINOR increment

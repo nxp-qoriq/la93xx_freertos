@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2021 NXP
+ * Copyright 2021, 2024 NXP
  */
 
 #ifndef __PHY_TIMER_H
@@ -58,6 +58,9 @@ enum ePhyTimerComparatorTrigger
 #define PHY_TIMER_COMPARATOR_COUNT              23
 #define PHY_TIMER_BASE_ADDRESS                  ( 0x40000000 + 0x1020000 )
 
+#define PHY_TIMER_COMP_VSPA_GO_0                0
+#define PHY_TIMER_COMP_R01                      2
+#define PHY_TIMER_COMP_VSPA_GO_1                12
 #define PHY_TIMER_COMP_PPS_IN                   13
 #define PHY_TIMER_COMP_PPS_OUT                  14
 
@@ -65,6 +68,9 @@ enum ePhyTimerComparatorTrigger
 #define MSECONDS_TO_PHY_TIMER_COUNT( msec )   ( ( PHY_TIMER_CLOCK / 1000 ) * msec )
 
 #define PHY_TIMER_PPS_OUT_PULSE_DELAY           500 /* ms */
+#define PHY_TIMER_PPS_OUT_GPS_INTERVAL         1000 /* ms */
+#define PHY_TIMER_PPS_OUT_GPS_HIGH              100 /* ms */
+#define PHY_TIMER_PPS_OUT_GPS_LOW   (PHY_TIMER_PPS_OUT_GPS_INTERVAL - PHY_TIMER_PPS_OUT_GPS_HIGH)
 
 struct xPhyTimerRegs
 {
@@ -237,6 +243,7 @@ void vPhyTimerUpdateComparator( uint8_t ucComparator, uint32_t ulTriggerValue );
  *
  */
 void vPhyTimerPPSOUTConfig( void );
+void vPhyTimerPPSOUTConfigGPSlike( void );
 
 /**
  *  @Function	    vPhyTimerPPSINEnable
@@ -263,6 +270,19 @@ void vPhyTimerPPSINDisable( void );
  *
  */
 void vPhyTimerPPSOUTHandler( void );
+void vPhyTimerPPSOUTHandlerGPSlike( void );
+
+/**
+ * PPS OUT adjsutment for NLM handler, minor corrections
+ *
+ */
+void vPhyTimerPPSOUTAdjustMinor(int32_t offset);
+
+/**
+ * PPS OUT adjsutment for NLM handler, major reset
+ *
+ */
+void vPhyTimerPPSOUTAdjustMajor(uint32_t timestamp, uint32_t offset);
 
 /**
  * PPS IN interrupt handler
@@ -279,5 +299,27 @@ void vPhyTimerPPSINHandler( void );
  *
  */
 uint32_t ulPhyTimerDiffToUS( uint32_t ulOlderTimestamp, uint32_t ulNewerTimestamp );
+
+/**
+ *  @Function	    vPhyTimerRx1Config
+ *
+ *  @Description	Configure Rx1 channel with persistent Rx_Allowed
+ *
+ *  @Return		    None
+ *
+ */
+void vPhyTimerRx1Config( void );
+
+typedef void (*PhyTimerPPSOUTCallback_t)( void *, long unsigned int );
+/**
+ *  @Function       vPhyTimerPPSOUTRegisterCallback
+ *
+ *  @Description    Configure user function to be called on PPS OUT
+ *                  interrupt handler
+ *
+ *  @Return         None
+ *
+ */
+void vPhyTimerPPSOUTRegisterCallback(PhyTimerPPSOUTCallback_t cb);
 
 #endif /* __LA9310_PHY_TIMER_H */

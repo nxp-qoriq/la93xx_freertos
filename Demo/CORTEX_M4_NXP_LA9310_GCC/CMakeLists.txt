@@ -97,8 +97,8 @@ endif()
     INCLUDE_DIRECTORIES(${ProjDirPath}/drivers/timesync)
     INCLUDE_DIRECTORIES(${ProjDirPath}/sw_cmd_engine)
     INCLUDE_DIRECTORIES(${LA9310_COMMON_HEADERS}/)
-if(LA9310_TURN_ON_COMMAND_LINE)
     INCLUDE_DIRECTORIES(${ProjDirPath}/utils/)
+if(LA9310_TURN_ON_COMMAND_LINE)
     INCLUDE_DIRECTORIES(${ProjDirPath}/utils/FreeRTOS-Plus-CLI/)
 endif()
 if(RFIC)
@@ -171,6 +171,7 @@ SET(LA9310_SOURCES
     "${ProjDirPath}/platform/boards/la9310/hardware_init.c"
     "${ProjDirPath}/main.c"
     "${ProjDirPath}/la9310_demo.c"
+    "${ProjDirPath}/drivers/serial/nmm_logging.c"
     "${ProjDirPath}/la9310_irq.c"
     "${ProjDirPath}/la9310_v2h_test.c"
     "${ProjDirPath}/bbdev_ipc_raw_demo.c"
