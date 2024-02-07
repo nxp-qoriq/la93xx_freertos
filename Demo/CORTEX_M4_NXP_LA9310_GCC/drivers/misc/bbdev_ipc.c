@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: BSD-3-Clause
- * Copyright 2021 NXP
+ * Copyright 2021, 2024 NXP
  */
 
 #include <string.h>
@@ -13,7 +13,8 @@
 #include "bbdev_ipc.h"
 #include "la93xx_bbdev_ipc.h"
 
-#define IPC_CTRL_AREA_BASE_ADDR    (0x1F81D000) /* IPC area start on TCML */
+/* IPC area start on TCML */
+#define IPC_CTRL_AREA_BASE_ADDR		(TCML_PHY_ADDR + LA9310_EP_IPC_OFFSET)
 
 #define MAX_BD_ENTRY_DATA_SIZE		(64)
 #define BUFFER_ENTRY_SIZE		(64)	/* Required to store buf_entry_t */
@@ -134,6 +135,8 @@ bbdev_ipc_get_dev_attr(uint8_t dev_id)
 	ipc_instance_t *ipc_instance = ipc_handle[dev_id];
 	ipc_ch_t *ch;
 	int i;
+
+	memset(&dev_attr, 0, sizeof(dev_attr));
 
 	for (i = 0; i < IPC_MAX_CHANNEL_COUNT; i++) {
 		ch = &(ipc_instance->ch_list[i]);
@@ -469,6 +472,7 @@ bbdev_ipc_init(uint8_t dev_id, uint8_t core_id)
 
 	ipc_md = ( ipc_metadata_t * ) IPC_CTRL_AREA_BASE_ADDR;
 	memset((void *)ipc_md, 0x0, sizeof(ipc_metadata_t));
+	memset(&md_priv_queue, 0, sizeof(md_priv_queue));
 
 	ipc_md->ipc_modem_signature = IPC_MODEM_SIGNATURE;
 	ipc_handle[dev_id] = (ipc_t)(&ipc_md->instance_list[dev_id]);
@@ -476,7 +480,7 @@ bbdev_ipc_init(uint8_t dev_id, uint8_t core_id)
 	/* Update IPC md offset and size in HIF */
 	pLa9310Info->pHif->ipc_regs.ipc_mdata_size =
 			(uint32_t)sizeof(ipc_metadata_t);
-	pLa9310Info->pHif->ipc_regs.ipc_mdata_offset = 0x1D000;
+	pLa9310Info->pHif->ipc_regs.ipc_mdata_offset = LA9310_EP_IPC_OFFSET;
 
 	/* 64 byte aligned mempool area */
 	ipc_mempool_area = ((int)(((uint32_t)ipc_md +
@@ -503,4 +507,10 @@ bbdev_ipc_init(uint8_t dev_id, uint8_t core_id)
 	log_info( "IPC on modem ready\n\r" );
 
 	return 0;
+}
+
+void
+bbdev_ipc_close(uint8_t dev_id, uint8_t core_id)
+{
+	CLEAR_HIF_MOD_RDY( pLa9310Info->pHif );
 }

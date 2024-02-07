@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2021 NXP
+ * Copyright 2021-2024 NXP
  */
 
 #include <phytimer.h>
@@ -11,6 +11,7 @@
 struct xPhyTimerRegs * regs = ( struct xPhyTimerRegs * ) ( PHY_TIMER_BASE_ADDRESS );
 
 static uint32_t ulNextPPSOUT;
+static PhyTimerPPSOUTCallback_t pps_out_cb = NULL;
 
 static uint32_t prvPhyTimerComparatorGetConfig( uint8_t ucComparator )
 {
@@ -121,6 +122,75 @@ void vPhyTimerPPSOUTHandler()
             PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
             ePhyTimerComparatorOutToggle,
             ulNextPPSOUT );
+}
+
+void vPhyTimerPPSOUTConfigGPSlike()
+{
+    NVIC_SetPriority( IRQ_PPS_OUT, 1 );
+    NVIC_EnableIRQ( IRQ_PPS_OUT );
+
+    ulNextPPSOUT = ulPhyTimerCapture( PHY_TIMER_COMP_PPS_OUT );
+    ulNextPPSOUT += MSECONDS_TO_PHY_TIMER_COUNT( PHY_TIMER_PPS_OUT_GPS_LOW );
+
+    vPhyTimerComparatorConfig( PHY_TIMER_COMP_PPS_OUT,
+            PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+            ePhyTimerComparatorOut1,
+            ulNextPPSOUT );
+}
+
+void vPhyTimerPPSOUTRegisterCallback(PhyTimerPPSOUTCallback_t cb)
+{
+	pps_out_cb = cb;
+}
+
+static uint32_t pps_lvl_toggle = 0;
+
+void vPhyTimerPPSOUTHandlerGPSlike()
+{
+    enum ePhyTimerComparatorTrigger output_level;
+
+    NVIC_ClearPendingIRQ( IRQ_PPS_OUT );
+
+    if (pps_lvl_toggle) {
+        ulNextPPSOUT += MSECONDS_TO_PHY_TIMER_COUNT( PHY_TIMER_PPS_OUT_GPS_LOW );
+        output_level  = ePhyTimerComparatorOut1;
+    } else {
+        ulNextPPSOUT += MSECONDS_TO_PHY_TIMER_COUNT( PHY_TIMER_PPS_OUT_GPS_HIGH );
+        output_level  = ePhyTimerComparatorOut0;
+    }
+
+    vPhyTimerComparatorConfig( PHY_TIMER_COMP_PPS_OUT,
+        PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+        output_level,
+        ulNextPPSOUT );
+
+    pps_lvl_toggle = (pps_lvl_toggle+1)%2;
+
+    if (!pps_lvl_toggle && pps_out_cb) {
+        BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+        xTimerPendFunctionCallFromISR( pps_out_cb, NULL, 0,
+                                &xHigherPriorityTaskWoken );
+        portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+    }
+}
+
+void vPhyTimerPPSOUTAdjustMinor(int32_t offset)
+{
+	/* Minor adjustment, fix on next interrupt */
+    ulNextPPSOUT += offset;
+}
+
+void vPhyTimerPPSOUTAdjustMajor(uint32_t timestamp, uint32_t offset)
+{
+    /* Major adjustment, reconfigure phy timer */
+    
+    /* offset is always positive in this case */
+    ulNextPPSOUT = timestamp + offset;
+    vPhyTimerComparatorConfig( PHY_TIMER_COMP_PPS_OUT,
+        PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+        ePhyTimerComparatorOut1,
+        ulNextPPSOUT );
+    pps_lvl_toggle = 0;
 }
 
 void vPhyTimerPPSINEnable()

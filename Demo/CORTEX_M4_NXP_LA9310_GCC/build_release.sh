@@ -14,7 +14,7 @@ build_flags=""
 show_help()
 {
        echo "Usage: ./$1 -t <target_model> -l <log_level> -b <build_variant> -m <boot_mode> -f <features>"
-       echo "       target_model = {nlm, rfnm, rfnm_nxp}"
+       echo "       target_model = {nlm, rfnm, rfnm_nxp, nmm}"
        echo "       log_level = {err, info, dbg, isr, all}"
        echo "       build_variant = {debug, release}"
        echo "       boot_mode = {i2c, pcie}"

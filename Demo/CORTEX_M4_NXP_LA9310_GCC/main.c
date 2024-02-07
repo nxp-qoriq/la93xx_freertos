@@ -381,7 +381,9 @@ int iInitHandler ( void )
     vPhyTimerReset();
     /* Run phy timer at PLAT_FREQ / 8 = ( 122.88 * 4 ) / 8 = 61.44MHz */
     vPhyTimerEnable( PHY_TMR_DIVISOR );
-    vPhyTimerPPSOUTConfig();
+    vPhyTimerPPSOUTConfigGPSlike();
+    /* Force RO1 always on */
+    vPhyTimerComparatorForce(PHY_TIMER_COMP_R01, ePhyTimerComparatorOut1);
 
     /*VSPA AVI Init*/
     avihndl = iLa9310AviInit();
