@@ -102,6 +102,7 @@ static void prvInitLa9310Info( struct la9310_info * pLa9310Info )
     uint32_t __IO * pMsiDataAddr;
     struct la9310_msi_info * pMsiInfo;
 	#endif
+    struct ccsr_dcr * pxDcr;
 
     pLa9310Info->itcm_addr = ( void * ) TCML_PHY_ADDR;
     pLa9310Info->dtcm_addr = ( void * ) TCMU_PHY_ADDR;
@@ -148,6 +149,12 @@ static void prvInitLa9310Info( struct la9310_info * pLa9310Info )
         }
     #endif /* ifdef LS1046_HOST_MSI_RAISE */
 	#endif //TURN_ON_STANDALONE_MODE
+
+	pxDcr = ( struct ccsr_dcr * ) pLa9310Info->pxDcr;
+	OUT_32(&pxDcr->ulScratchrw[LA9310_BOOT_HSHAKE_HIF_REG], LA9310_EP_HIF_OFFSET);
+	dmb();
+	OUT_32(&pxDcr->ulScratchrw[LA9310_BOOT_HSHAKE_HIF_SIZ_REG], sizeof(struct la9310_hif));
+	dmb();
 }
 
 #ifdef TURN_ON_HOST_MODE
