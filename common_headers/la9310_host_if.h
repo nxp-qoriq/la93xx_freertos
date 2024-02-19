@@ -5,9 +5,7 @@
 #ifndef __LA9310_HOST_IF_H__
 #define __LA9310_HOST_IF_H__
 #include "la9310_v2h_if.h"
-#ifdef __RFIC
 #include "rfic_hif.h"
-#endif
 
 /*Common Addresses and offsets*/
 #define LA9310_EP_DMA_BUF_PHYS_ADDR	0xA0000000
@@ -80,6 +78,8 @@ struct la9310_msg_unit {
 
 /*Scratch register for Host <> LA9310 Boot hand shake*/
 #define LA9310_BOOT_HSHAKE_SCRATCH_REG	1
+#define LA9310_BOOT_HSHAKE_HIF_REG         3
+#define LA9310_BOOT_HSHAKE_HIF_SIZ_REG     4
 
 #define LA9310_UPGRADE_TIMESYNC_FW 0
 #if LA9310_UPGRADE_TIMESYNC_FW
@@ -256,9 +256,7 @@ struct la9310_hif {
 	struct la9310_stats stats;
 	struct hif_ipc_regs ipc_regs;
 	struct la9310_sw_cmd_desc sw_cmd_desc;
-#ifdef __RFIC
         rf_host_if_t rf_hif;
-#endif
 }  __attribute__( ( packed ) );
 
 #define LA9310_VER_MAJOR(ver) ((ver >> 16) & 0xffff)
