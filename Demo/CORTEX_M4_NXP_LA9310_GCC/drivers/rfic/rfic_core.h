@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright 2021-2022 NXP
+ * Copyright 2021-2022, 2024 NXP
  */
 #ifndef __RFIC_CORE_H
 #define __RFIC_CORE_H
@@ -90,6 +90,9 @@ typedef struct RficDevice
     RFICGpio_t eGpio[RF_GPIO_MAX];
     /* RF HIF */
     rf_host_if_t *pRfHif;
+    uint32_t iq_phys_addr;
+    uint32_t iq_mem_addr;
+    uint32_t iq_mem_size;
     uint32_t xVgaRegVal;
     uint32_t xLoopback;
 }RficDevice_t;

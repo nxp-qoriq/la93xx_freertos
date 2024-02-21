@@ -406,11 +406,8 @@ int iInitHandler ( void )
     iLa9310AviConfig();
 
     #if __DCS
-    #if RFNM
-    vDcsInit(Full_Freq);
-    #else
-    vDcsInit(Half_Freq);
-    #endif
+    int dcs_rate = IN_32(&pLa9310Info->pHif->dcs_rate);
+    vDcsInit(dcs_rate);
     #endif
 
     #ifdef TURN_ON_HOST_MODE
