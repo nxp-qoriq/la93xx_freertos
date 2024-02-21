@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright 2017-2018, 2021 NXP
+ * Copyright 2017-2018, 2021, 2024 NXP
  */
 
 #include <string.h>
@@ -83,7 +83,7 @@ BaseType_t xLa9310AdcDacPowerUp( LA9310XcvrDCS_t dcs )
 }
 
 BaseType_t xLa9310ConfigAdcDacClock( LA9310XcvrDCS_t dcs,
-                                     DCSFreq_t freq )
+                                     int freq )
 {
     uint32_t ulClkCfgRegVal, ulClkCtrlRegVal;
 
@@ -589,7 +589,7 @@ BaseType_t xLa9310AdcDacSetGateReady( LA9310XcvrDCS_t dcs )
     return pdPASS;
 }
 
-void vDcsInit( DCSFreq_t Freq )
+void vDcsInit( int Freq )
 {
     /* Init all ADC */
     uint8_t dcs;

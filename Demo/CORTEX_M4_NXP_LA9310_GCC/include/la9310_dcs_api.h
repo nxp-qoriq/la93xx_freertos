@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright 2021 NXP
+ * Copyright 2021, 2024 NXP
  */
 
 #ifndef __LA9310DCS_API_H__
@@ -16,8 +16,8 @@ typedef enum LA9310cvrDCS{
 }LA9310XcvrDCS_t;
 
 typedef enum DCSFreq {
-    Full_Freq,
-    Half_Freq,
+	Full_Freq,
+	Half_Freq,
 }DCSFreq_t;
 
 /* Use LA9310_DCS_BITMASK macro to generate
@@ -33,7 +33,7 @@ typedef enum DCSFreq {
  * Init DCS
  * @param freq: DAC frequency
 */
-void vDcsInit(DCSFreq_t Freq);
+void vDcsInit(int Freq);
 
 /*!
  * @brief vLA9310DacClockSwitch

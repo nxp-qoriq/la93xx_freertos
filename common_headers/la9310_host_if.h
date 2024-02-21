@@ -20,9 +20,6 @@
 #define LA9310_EP_IPC_SIZE			(16 * 1024)
 
 /*TODO - remove hardcoding*/
-#define LA9310_IQFLOOD_PHYS_ADDR	0xC0000000
-#define RFNM_IQFLOOD_MEMADDR 0x96400000
-#define RFNM_IQFLOOD_MEMSIZE (1024 * 1024 * 20)
 #define MSI_IRQ_FLOOD_0 6
 #define MSI_IRQ_FLOOD_1 7
 
@@ -251,6 +248,10 @@ struct la9310_hif {
 	uint32_t status;
 	uint32_t host_ready;
 	uint32_t mod_ready;
+	uint32_t dcs_rate;
+	uint32_t iq_phys_addr;
+	uint32_t iq_mem_addr;
+	uint32_t iq_mem_size;
 	struct irq_evt_regs irq_evt_regs;
 	struct debug_log_regs dbg_log_regs;
 	struct la9310_stats stats;

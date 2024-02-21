@@ -235,7 +235,7 @@ err:
     return;
 }
 
-void vRficProcessIqDump(rf_sw_cmd_desc_t *rfic_sw_cmd)
+void vRficProcessIqDump(RficDevice_t *pRficDev, rf_sw_cmd_desc_t *rfic_sw_cmd)
 {
         BaseType_t xRet = pdFAIL;
         struct sw_cmddata_dump_iq *cmd_data;
@@ -248,7 +248,7 @@ void vRficProcessIqDump(rf_sw_cmd_desc_t *rfic_sw_cmd)
         mbox_h2v.ctrl.bandwidth = 0;
         mbox_h2v.ctrl.rcvr = 0;
         mbox_h2v.msbl16 = cmd_data->size;
-        cmd_data->addr = LA9310_IQFLOOD_PHYS_ADDR;
+        cmd_data->addr = pRficDev->iq_phys_addr;
         mbox_h2v.lsb32 = cmd_data->addr;
         vLa9310MbxSend(&mbox_h2v);
 

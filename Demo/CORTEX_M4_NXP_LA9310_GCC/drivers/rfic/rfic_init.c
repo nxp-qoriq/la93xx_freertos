@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright 2021-2022 NXP
+ * Copyright 2021-2022, 2024 NXP
  */
 #include "rfic_core.h"
 #include "debug_console.h"
@@ -119,6 +119,9 @@ BaseType_t iRficInit( struct la9310_info *pLa9310Info )
     pRficDev->pDspiHandle = pxDspiInit( (( 1 << DSPI_CS3 ) | ( 1 << DSPI_CS0 )),
 					RF_DSPI_MAX_CLK );
 
+    pRficDev->iq_phys_addr = IN_32(&pHif->iq_phys_addr);
+    pRficDev->iq_mem_addr = IN_32(&pHif->iq_mem_addr);
+    pRficDev->iq_mem_size = IN_32(&pHif->iq_mem_size);
     /* Init RF GPIO */
     if( vRficInitGpio( pRficDev ))
     {

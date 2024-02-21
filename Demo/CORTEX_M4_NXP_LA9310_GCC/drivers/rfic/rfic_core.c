@@ -115,7 +115,7 @@ BaseType_t xHandleSwCmd( RficDevice_t *pRficDev, rf_sw_cmd_desc_t *pSwCmdDesc)
             break;
 
         case RF_SW_CMD_DUMP_IQ_DATA:
-            vRficProcessIqDump(pSwCmdDesc);
+            vRficProcessIqDump(pRficDev, pSwCmdDesc);
             break;
 
         case RF_SW_GET_RX_DC_OFFSET:
@@ -222,7 +222,7 @@ void vRficCoreTask( void * pvParameters )
                 
 	                vRaiseMsi( pLa9310Info, MSI_IRQ_FLOOD_0 );
 
-	                uint32_t *bufferStatusPtr = (uint32_t*) (0xC0000000 + (1024 * 1024 * 17));
+	                uint32_t *bufferStatusPtr = (uint32_t*) (pRficDev->iq_phys_addr + (1024 * 1024 * 17));
 	                *bufferStatusPtr = vspa_mbox.msb;
 
 	                //log_info("set %p off %x to %08x \r\n", bufferStatusPtr, cmd_data->addr, *bufferStatusPtr);
