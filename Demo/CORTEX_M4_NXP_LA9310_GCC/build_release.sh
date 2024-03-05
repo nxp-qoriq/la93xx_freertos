@@ -65,18 +65,21 @@ unlink $file
 if [ "$boot_mode" = "pcie" ]
 then
 	echo "Build for PCIe Host Mode.."
-	build_flags+=" -DTURN_ON_STANDALONE_MODE=OFF"
+	build_flags=" -DTURN_ON_STANDALONE_MODE=OFF $build_flags"
 	echo "#define TURN_ON_HOST_MODE  1" > $file
 else
 	echo "Build for I2C Standalone Mode.."
-	build_flags+=" -DTURN_ON_STANDALONE_MODE=ON"
+	build_flags=" -DTURN_ON_STANDALONE_MODE=ON $build_flags"
 	echo "#define TURN_ON_STANDALONE_MODE  1" > $file
 fi
-if [ "$target_model" == "rfnm" -o "$target_model" == "rfnm_nxp" ];then
-	build_flags+=" -DBOARD_RFNM=ON"
+
+if [ "$target_model" = "rfnm" ]
+then
+	build_flags=" -DBOARD_RFNM=ON $build_flags"
 else
-	build_flags+=" -DBOARD_RFNM=OFF"
+	build_flags=" -DBOARD_RFNM=OFF $build_flags"
 fi
+
 echo "#######################################################################################################################"
 echo "Building FreeRTOS Image for target_model=$target_model, log_level=$log_level build_variant=$build_variant boot_mode=$boot_mode features=$features#"
 echo "build_flags=$build_flags"
