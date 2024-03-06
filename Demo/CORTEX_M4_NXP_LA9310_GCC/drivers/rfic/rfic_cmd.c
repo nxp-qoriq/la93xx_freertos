@@ -248,16 +248,18 @@ void vRficProcessIqDump(RficDevice_t *pRficDev, rf_sw_cmd_desc_t *rfic_sw_cmd)
         mbox_h2v.ctrl.bandwidth = 0;
         mbox_h2v.ctrl.rcvr = 0;
         mbox_h2v.msbl16 = cmd_data->size;
+#ifdef FLOOD
         cmd_data->addr = pRficDev->iq_phys_addr;
+#endif
         mbox_h2v.lsb32 = cmd_data->addr;
         vLa9310MbxSend(&mbox_h2v);
 
         log_info("starting iqflood with addr %p\r\n", cmd_data->addr);
 
-#ifdef RFNM
+#ifdef FLOOD
 read_again:
 #endif
-	xRet = vLa9310MbxReceive(&mbox_v2h);
+                xRet = vLa9310MbxReceive(&mbox_v2h);
 
         if ((pdFAIL == xRet) || (0 != mbox_v2h.status.err_code))
         {
@@ -269,7 +271,7 @@ read_again:
                 rfic_sw_cmd->result = RF_SW_CMD_RESULT_OK;
         }
 
-#ifdef RFNM
+#ifdef FLOOD
         //log_info("iqdump mbox is %08x \r\n", mbox_v2h.msb32);
 
         if(0 && (mbox_v2h.msb32 & 0xf0) == 0x80) {
