@@ -98,7 +98,7 @@ void vPhyTimerUpdateComparator( uint8_t ucComparator,
     OUT_32( &regs->xTmPhyTmrN[ ucComparator ].ulTmPhyTmrCnv, ulTriggerValue );
 }
 
-void vPhyTimerPPSOUTConfig()
+__attribute__( ( weak ) )  void vPhyTimerPPSOUTConfig()
 {
     NVIC_SetPriority( IRQ_PPS_OUT, 1 );
     NVIC_EnableIRQ( IRQ_PPS_OUT );
@@ -112,7 +112,7 @@ void vPhyTimerPPSOUTConfig()
             ulNextPPSOUT );
 }
 
-void vPhyTimerPPSOUTHandler()
+__attribute__( ( weak ) )  void vPhyTimerPPSOUTHandler()
 {
     NVIC_ClearPendingIRQ( IRQ_PPS_OUT );
 
@@ -204,7 +204,7 @@ void vPhyTimerPPSINDisable()
     NVIC_DisableIRQ( IRQ_PPS_IN );
 }
 
-void vPhyTimerPPSINHandler()
+__attribute__( ( weak ) )  void vPhyTimerPPSINHandler()
 {
     PRINTF( "%x\r\n", ulPhyTimerComparatorRead( PHY_TIMER_COMP_PPS_IN ) );
     NVIC_ClearPendingIRQ( IRQ_PPS_IN );
