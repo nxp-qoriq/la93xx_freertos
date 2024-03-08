@@ -37,7 +37,7 @@ endif()
 SET(CMAKE_ASM_FLAGS_RELEASE "${CMAKE_ASM_FLAGS_RELEASE} -g  -mcpu=cortex-m4  -mfloat-abi=soft  -mthumb  -Wall -Wno-packed-bitfield-compat  -Wno-address-of-packed-member -fno-common  -ffunction-sections  -fdata-sections  -ffreestanding  -fno-builtin  -Os  -mapcs  -std=gnu99")
 
 # RELEASE C FLAGS
-SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g  -fno-strict-aliasing  -mcpu=cortex-m4  -mfloat-abi=soft  -mthumb  -MMD  -MP  -Wall -Wno-packed-bitfield-compat  -Wno-address-of-packed-member -fno-common  -ffunction-sections  -fdata-sections  -ffreestanding  -fno-builtin  -Os  -mapcs  -std=gnu99 -Werror")
+SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g  -fno-strict-aliasing  -mcpu=cortex-m4  -mfloat-abi=soft  -mthumb  -MMD  -MP  -Wall -Wno-packed-bitfield-compat  -Wno-address-of-packed-member -fno-common  -ffunction-sections  -fdata-sections  -ffreestanding  -fno-builtin  -Os  -mapcs  -std=gnu99  -Wno-unused-function")
 
 # RELEASE LD FLAGS
 SET(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -g  -mcpu=cortex-m4  -mfloat-abi=soft  --specs=nano.specs  -lm  -Wall -Wno-packed-bitfield-compat  -Wno-address-of-packed-member  -fno-common  -ffunction-sections  -fdata-sections  -ffreestanding  -fno-builtin  -Os  -mthumb  -mapcs  -Xlinker --gc-sections  -Xlinker -static  -Xlinker -z  -Xlinker muldefs")
@@ -46,7 +46,10 @@ SET(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -g  -mcpu=
 SET(CMAKE_ASM_FLAGS_DEBUG "${CMAKE_ASM_FLAGS_DEBUG}  -D__DEBUG")
 
 #Enable/Disable command line
-SET(LA9310_TURN_ON_COMMAND_LINE ON)
+if(RFNM_DFE)
+else()
+	SET(LA9310_TURN_ON_COMMAND_LINE ON)
+endif()
 
 if(BOARD_RFNM)
     SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -DRFNM")
@@ -64,6 +67,13 @@ SET(DAC ON)
 # C MACRO
 if(LA9310_TURN_ON_COMMAND_LINE)
     SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -D__NDEBUG -DLA9310_ENABLE_COMMAND_LINE")
+else()
+    SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -D__NDEBUG")
+endif()
+
+# C MACRO
+if(LA9310_DFE_APP)
+    SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -D__NDEBUG -DLA9310_DFE_APP")
 else()
     SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -D__NDEBUG")
 endif()
@@ -202,6 +212,18 @@ if(LA9310_TURN_ON_COMMAND_LINE)
         "${ProjDirPath}/utils/UARTCommandConsole.c"
         "${ProjDirPath}/drivers/timesync/sync_timing_device_cli.c"
       )
+endif()
+
+if (LA9310_DFE_APP)
+     SET(LA9310_SOURCES ${LA9310_SOURCES}
+        "${ProjDirPath}/dfe_avi.c"
+        "${ProjDirPath}/dfe_app.c"
+      )
+     if(LA9310_TURN_ON_COMMAND_LINE)
+         SET(LA9310_SOURCES ${LA9310_SOURCES}
+             "${ProjDirPath}/utils/la9310_dfe_test_command.c"
+          )
+     endif()
 endif()
 
 if(RFIC)
