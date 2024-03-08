@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright 2017, 2021-2022 NXP
+ * Copyright 2017, 2021-2024 NXP
  */
 
 #include "queue.h"
@@ -190,6 +190,7 @@ void AviHndleMboxInterrupt( struct avi_hndlr * );
 void La9310VSPA_IRQDefaultHandler( void );
 void La9310VSPA_IRQRelayHandler( void );
 void La9310VSPA_IRQHandler( void );
-void iLa9310AviVspaHwVer( void );
+unsigned int iLa9310AviVspaHwVer( void );
+unsigned int iLa9310AviVspaSwVer( void );
 void iLa9310VspaInit( void );
 void iLa9310AviClose( void );
