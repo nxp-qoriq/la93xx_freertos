@@ -30,8 +30,8 @@
 #define MSG_IN_0_VALID                  ( 1 << 2 )
 #define DBGGNCR                         0xE00800EC
 
-#define SET_AXIQ_LOOPBACK_MASK          0x0000001e
-#define REMOVE_AXIQ_LOOPBACK_MASK       0xffffffe1
+#define SET_AXIQ_LOOPBACK_MASK          0x0000005e
+#define REMOVE_AXIQ_LOOPBACK_MASK       0xffffffa1
 
 
 #define FLOAT2FIXED( x, f )    ( ( int ) ( ( x ) * ( 1 << f ) ) )
@@ -84,6 +84,14 @@ void * iLa9310AviInit( void );
  * @return : Returns the pointer to AVI handler
  */
 void * iLa9310AviHandle();
+
+/**
+ * @brief : Sets AXIQ loopback for RX1
+ *
+ * @return : NULL
+ */
+void vAxiqLoopbackSet( bool );
+
 int iLa9310AviConfig( void );
 
 #endif /* __LA9310_AVI_H__ */

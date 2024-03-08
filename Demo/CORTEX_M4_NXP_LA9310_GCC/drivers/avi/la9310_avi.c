@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2017, 2021-2022 NXP
+ * Copyright 2017, 2021-2024 NXP
  */
 
 
@@ -369,11 +369,22 @@ static void vLa9310AviEvtUnmask( struct la9310_info * pLa9310Info,
     NVIC_EnableIRQ( IRQ_VSPA );
 }
 
-void iLa9310AviVspaHwVer( void )
+unsigned int iLa9310AviVspaHwVer( void )
 {
     struct vspa_regs * pVspaRegs = ( struct vspa_regs * ) VSPA_BASE_ADDR;
 
     log_info( "INFO: VSPA Hw VER: 0x%x\n\r", pVspaRegs->hw_version );
+
+    return pVspaRegs->hw_version;
+}
+
+unsigned int iLa9310AviVspaSwVer( void )
+{
+    struct vspa_regs * pVspaRegs = ( struct vspa_regs * ) VSPA_BASE_ADDR;
+
+    log_info( "INFO: VSPA Sw VER: 0x%x\n\r", pVspaRegs->sw_version );
+
+    return pVspaRegs->sw_version;
 }
 
 void * iLa9310AviHandle()
@@ -559,4 +570,12 @@ void iLa9310VspaInit( void )
     /* Enable VSPA interrupt handling for FreeRTOS */
     NVIC_EnableIRQ( IRQ_VSPA );
     log_dbg( "%s: Out\n\r", __func__ );
+}
+
+void vAxiqLoopbackSet( bool bLoopbackEnable )
+{
+	if (bLoopbackEnable)
+		OUT_32( DBGGNCR, ( SET_AXIQ_LOOPBACK_MASK | IN_32( DBGGNCR ) ) );
+	else
+		OUT_32( DBGGNCR, ( REMOVE_AXIQ_LOOPBACK_MASK & IN_32( DBGGNCR ) ) );
 }
