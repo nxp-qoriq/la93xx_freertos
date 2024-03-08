@@ -36,6 +36,9 @@
     #include "la9310_v2h_test.h"
 #endif
 #include "la9310_avi.h"
+#ifdef LA9310_DFE_APP
+    #include "dfe_app.h"
+#endif
 #ifdef LA9310_ENABLE_COMMAND_LINE
     #include "UARTCommandConsole.h"
     #define mainUART_COMMAND_CONSOLE_STACK_SIZE       ( configMINIMAL_STACK_SIZE * 2 )
@@ -46,6 +49,9 @@
  * defined in CLI-Commands.c.
  */
     extern void vRegisterNLMTestCommands( void );
+#ifdef LA9310_DFE_APP
+    extern void vRegisterDFETestCommands( void );
+#endif
 
 /* cOutputBuffer is used by FreeRTOS+CLI.  It is declared here so the
  * persistent qualifier can be used.  For the buffer to be declared here, rather
@@ -388,10 +394,11 @@ int iInitHandler ( void )
     vPhyTimerReset();
     /* Run phy timer at PLAT_FREQ / 8 = ( 122.88 * 4 ) / 8 = 61.44MHz */
     vPhyTimerEnable( PHY_TMR_DIVISOR );
+#ifndef LA9310_DFE_APP
     vPhyTimerPPSOUTConfigGPSlike();
     /* Force RO1 always on */
     vPhyTimerComparatorForce(PHY_TIMER_COMP_R01, ePhyTimerComparatorOut1);
-
+#endif
     /*VSPA AVI Init*/
     avihndl = iLa9310AviInit();
 
@@ -463,10 +470,23 @@ int main( void )
     }
 
     #ifdef LA9310_ENABLE_COMMAND_LINE
+    #ifdef LA9310_DFE_APP
+        vRegisterDFETestCommands();
+    #else
         vRegisterNLMTestCommands();
+    #endif
         vUARTCommandConsoleStart( mainUART_COMMAND_CONSOLE_STACK_SIZE,
                                   mainUART_COMMAND_CONSOLE_TASK_PRIORITY );
     #endif
+
+    #ifdef LA9310_DFE_APP
+    irc = vDFEInit();
+    if ( irc )
+    {
+        log_err( "%s: vDFEInit, rc %d\n\r", __func__, irc );
+    }
+    #endif
+
 
     /* Start FreeRTOS scheduler */
     vTaskStartScheduler();
