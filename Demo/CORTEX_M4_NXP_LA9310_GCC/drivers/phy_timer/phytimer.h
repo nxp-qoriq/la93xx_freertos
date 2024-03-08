@@ -59,10 +59,24 @@ enum ePhyTimerComparatorTrigger
 #define PHY_TIMER_BASE_ADDRESS                  ( 0x40000000 + 0x1020000 )
 
 #define PHY_TIMER_COMP_VSPA_GO_0                0
-#define PHY_TIMER_COMP_R01                      2
+#define PHY_TIMER_COMP_CH1_RX_ALLOWED           1
+#define PHY_TIMER_COMP_CH2_RX_ALLOWED           2
+#define PHY_TIMER_COMP_CH3_RX_ALLOWED           3
+#define PHY_TIMER_COMP_CH4_RX_ALLOWED           4
+#define PHY_TIMER_COMP_CH5_RX_ALLOWED           5
+#define PHY_TIMER_COMP_CH6_RX_ALLOWED           6
+#define PHY_TIMER_COMP_CH5_TX_ALLOWED           11
 #define PHY_TIMER_COMP_VSPA_GO_1                12
 #define PHY_TIMER_COMP_PPS_IN                   13
 #define PHY_TIMER_COMP_PPS_OUT                  14
+#define PHY_TIMER_COMP_RFCTL_0                  15
+#define PHY_TIMER_COMP_RFCTL_1                  16
+#define PHY_TIMER_COMP_RFCTL_2                  17
+#define PHY_TIMER_COMP_RFCTL_3                  18
+#define PHY_TIMER_COMP_RFCTL_4                  19
+#define PHY_TIMER_COMP_RFCTL_5                  20
+
+#define PHY_TIMER_COMP_R01                      PHY_TIMER_COMP_CH2_RX_ALLOWED
 
 #define PHY_TIMER_CLOCK                         (PLAT_FREQ / 8) /* 61.44 MHz */
 #define MSECONDS_TO_PHY_TIMER_COUNT( msec )   ( ( PHY_TIMER_CLOCK / 1000 ) * msec )
