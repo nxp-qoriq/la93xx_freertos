@@ -74,6 +74,14 @@ Set configCPU_CLOCK_HZ for 245760000
 #define configUSE_COUNTING_SEMAPHORES     0
 #define configGENERATE_RUN_TIME_STATS     0
 #define configUSE_TASK_NOTIFICATIONS	  1
+
+#ifdef LA9310_DFE_APP
+#undef configCHECK_FOR_STACK_OVERFLOW
+#define configCHECK_FOR_STACK_OVERFLOW    1
+#undef configUSE_MALLOC_FAILED_HOOK
+#define configUSE_MALLOC_FAILED_HOOK      1
+#endif
+
 /* Co-routine definitions. */
 #define configUSE_CO_ROUTINES             0
 #define configMAX_CO_ROUTINE_PRIORITIES   (2)
@@ -97,7 +105,7 @@ Set configCPU_CLOCK_HZ for 245760000
 to exclude the API function. */
 #define INCLUDE_vTaskPrioritySet          1
 #define INCLUDE_uxTaskPriorityGet         1
-#define INCLUDE_vTaskDelete               0
+#define INCLUDE_vTaskDelete               1
 #define INCLUDE_vTaskCleanUpResources     0
 #define INCLUDE_vTaskSuspend              1
 #define INCLUDE_vTaskDelayUntil           0
