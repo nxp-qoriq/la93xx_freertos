@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
 #Copyright 2022-2024 NXP
 set -x
@@ -14,7 +14,7 @@ build_flags=""
 show_help()
 {
        echo "Usage: ./$1 -t <target_model> -l <log_level> -b <build_variant> -m <boot_mode> -f <features>"
-       echo "       target_model = {nlm, rfnm, rfnm_nxp, nmm}"
+       echo "       target_model = {nlm, rfnm, rfnm_nxp, rfnm_dfe, nmm}"
        echo "       log_level = {err, info, dbg, isr, all}"
        echo "       build_variant = {debug, release}"
        echo "       boot_mode = {i2c, pcie}"
@@ -46,17 +46,20 @@ show_help
 exit 0
 fi
 
-if [ "$target_model" != "rfnm" -a "$target_model" != "nlm" -a "$target_model" != "rfnm_nxp" ]
+if [ "$target_model" != "rfnm" -a "$target_model" != "nlm" -a "$target_model" != "rfnm_nxp" -a "$target_model" != "rfnm_dfe" ]
 then
 show_help
 exit 0
 fi
 
+echo "features = { $features }"
 #check feature define presence
 if [ "$features" ]
 then
         ENABLE_FEATURES=`echo $features | sed 's/:/ -D/g'`
         echo "ENABLE_FEATURES = $ENABLE_FEATURES"
+
+        build_flags+=$ENABLE_FEATURES;
 fi
 
 file="include/la9310_boot_mode.h"
@@ -78,6 +81,11 @@ then
 	build_flags=" -DBOARD_RFNM=ON $build_flags"
 else
 	build_flags=" -DBOARD_RFNM=OFF $build_flags"
+fi
+if [ "$target_model" == "rfnm_dfe" ];then
+	build_flags=" -DRFNM_DFE=ON $build_flags"
+else
+	build_flags=" -DRFNM_DFE=OFF $build_flags"
 fi
 
 echo "#######################################################################################################################"
