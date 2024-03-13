@@ -31,6 +31,7 @@ enum dfe_host_to_modem_msg_type {
 	DFE_CFG_AXIQ_LB_DISABLE,
 	DFE_VSPA_DEBUG_BP,
 	DFE_VSPA_DMA_BENCH,
+	DFE_VSPA_PROD_HOST_BYPASS,
 	DFE_H2M_MAX_OPS,
 };
 

@@ -56,6 +56,7 @@ uint32_t tx_addr = 0xA0010000;
 uint32_t sym_size_128 = 35;
 uint32_t rx_sym_nr = 14/2;
 uint32_t tx_sym_nr = 14/2;
+uint8_t  host_bypass_flag_tx_rx = 1;
 
 tDFEPatternConfig pattern = {
 	.scs = SCS_kHz30,
@@ -415,7 +416,9 @@ void vVSPADebugBreakPoint()
 
 static void prvVSPAConfig(uint32_t tdd0_fdd1, int resp_mode)
 {
+#ifdef _NOT_IMPLEMENTED
 	static uint8_t first_operation = 1;
+#endif
 	struct dfe_mbox mbox_h2v;
 
 	/* send semistatic config */
@@ -430,12 +433,18 @@ static void prvVSPAConfig(uint32_t tdd0_fdd1, int resp_mode)
 	MBOX_SET_RX_IDX(mbox_h2v, uRxAntennaComparator - 1);
 	/* la9310 has a single Tx - ch5. VSPA expects 0 */
 	MBOX_SET_TX_IDX(mbox_h2v, 0);
+
+	/* running outside fr1_fr2_tool requires these bits */
+	MBOX_SET_HOST_BYPASS_TX(mbox_h2v, host_bypass_flag_tx_rx);
+	MBOX_SET_HOST_BYPASS_RX(mbox_h2v, host_bypass_flag_tx_rx);
+
 	/* IQ swap settings */
 	MBOX_SET_RX_IQSWAP(mbox_h2v, 0);
 	MBOX_SET_TX_IQSWAP(mbox_h2v, 0);
 	/* TDD SCS config */
 	MBOX_SET_SCS(mbox_h2v, pattern.scs);
 
+#ifdef _NOT_IMPLEMENTED
 	/* production VSPA requires slightly different handling */
 	/* switching between modes requires chan_start updates*/
 	if (bVspaProductionBinary) {
@@ -444,6 +453,7 @@ static void prvVSPAConfig(uint32_t tdd0_fdd1, int resp_mode)
 			MBOX_SET_TX_CHAN_RESTART(mbox_h2v, 1);
 		}
 	}
+#endif
 
 	prvSendVspaCmd(&mbox_h2v, 0xDEAD, resp_mode);
 
@@ -457,7 +467,9 @@ static void prvVSPAConfig(uint32_t tdd0_fdd1, int resp_mode)
 	MBOX_SET_TX_SYM_NR(mbox_h2v, tx_sym_nr); /* VSPA reserves double nr of syms */
 	prvSendVspaCmd(&mbox_h2v, 0xDEAD, resp_mode);
 
+#ifdef _NOT_IMPLEMENTED
 	first_operation = 0;
+#endif
 }
 
 #if 0
@@ -906,6 +918,7 @@ int iTddStart(void)
 	}
 
 	stop = pdFALSE;
+
 	if(pdPASS != xTaskCreate(prvConfigTddTask, "prvConfigTddTask", 
 	configMINIMAL_STACK_SIZE * 4,
 			NULL, tskIDLE_PRIORITY + 2, &pxTddConfigTask ))
@@ -1004,7 +1017,6 @@ int iBenchmarkVspaTest(uint32_t size, uint32_t mode, uint32_t parallel_dma, uint
 	vTaskDelay(100);
 	retries = 20;
 	while (--retries && (opcode != MBOX_OPC_BENCHMARK_PCI)) {
-		//PRINTF(".\r\n");
 		ret = vDFEMbxReceive(&mbox_v2h, DFE_OPS_MBOX_ID, VSPA_IMM_RESPONSE);
 		if (ret != 0) {
 			PRINTF("No response from VSPA for opcode %d\r\n", MBOX_GET_OPCODE(mbox_h2v));
@@ -1013,7 +1025,6 @@ int iBenchmarkVspaTest(uint32_t size, uint32_t mode, uint32_t parallel_dma, uint
 
 		opcode = MBOX_GET_OPCODE(mbox_v2h);
 		vTaskDelay(100);
-		//vTaskDelay(0);
 		//PRINTF("retries=%d, opcode = %#x, ret = %d\r\n", retries, MBOX_GET_OPCODE(mbox_h2v), ret);
 	}
 	/* retreve the number of VSPA cycles */
@@ -1052,8 +1063,10 @@ static void prvVspaWarmUp()
 		vConfigFddStart();
 
 	vPhyTimerDelay( 2 * ofdm_short_sym_time[SCS_kHz30] );
+	for (int i = 0; i < 4; i ++)
+		vPhyTimerComparatorForce(PHY_TIMER_COMP_CH1_RX_ALLOWED + i, ePhyTimerComparatorOut1);
 	vPhyTimerComparatorForce(uTxAntennaComparator, ePhyTimerComparatorOut1);
-	vPhyTimerComparatorForce(uRxAntennaComparator, ePhyTimerComparatorOut1);
+
 	/* keep FDD running for few symbols */
 	vPhyTimerDelay( 2 * ofdm_short_sym_time[SCS_kHz30] );
 
@@ -1063,7 +1076,8 @@ static void prvVspaWarmUp()
 	/* keep FDD running for ~2 symbols */
 	vPhyTimerDelay( 2 * ofdm_short_sym_time[SCS_kHz30] );
 	vPhyTimerComparatorForce(uTxAntennaComparator, ePhyTimerComparatorOut0);
-	vPhyTimerComparatorForce(uRxAntennaComparator, ePhyTimerComparatorOut0);
+	for (int i = 0; i < 4; i ++)
+		vPhyTimerComparatorForce(PHY_TIMER_COMP_CH1_RX_ALLOWED + i, ePhyTimerComparatorOut0);
 
 	log_err("VSPA warm-up done!\r\n");
 }
@@ -1274,6 +1288,9 @@ static void prvProcessRx(struct dfe_msg *msg)
 			prvSendMsgToHost(msg->type, ret, 5, whole, fractional, vspa_cycles, msg->payload[2], msg->payload[3]);
 			return;
 		}
+	case DFE_VSPA_PROD_HOST_BYPASS:
+		host_bypass_flag_tx_rx = !!msg->payload[0];
+		break;
 	default:
 		prvSendMsgToHost(msg->type, DFE_INVALID_COMMAND, 0);
 		break;
@@ -1348,10 +1365,7 @@ int vDFEInit(void)
 
 	memset(app_logging, 0, sizeof(app_logging));
 	stop = pdFALSE;
-
-	//bVspaProductionBinary = !!((iLa9310AviVspaSwVer() & 0xDFEF0000) == 0xDFEF0000);
-
-	bVspaProductionBinary = 0;
+	bVspaProductionBinary = !!((iLa9310AviVspaSwVer() & 0xDFEF0000) == 0xDFEF0000);
 
 	prvVspaWarmUp();
 
