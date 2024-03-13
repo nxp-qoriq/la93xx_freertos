@@ -160,30 +160,33 @@ typedef enum {
 #endif
 
 /* RX/TX QEC + DC offset */
-#define MBOX_GET_QEC_CORR_MODE(mbox)           MBOX_GET_FIELD((mbox).msb, 1, 23)
-#define MBOX_SET_QEC_CORR_MODE(mbox, mode)     MBOX_SET_FIELD((mbox).msb, mode, 1, 23)
-#define MBOX_GET_QEC_TX_RX_MODE(mbox)          MBOX_GET_FIELD((mbox).msb, 1, 22)
-#define MBOX_SET_QEC_TX_RX_MODE(mbox, tx_rx)   MBOX_SET_FIELD((mbox).msb, tx_rx, 1, 22)
-#define MBOX_GET_QEC_IDX(mbox)          	   MBOX_GET_FIELD((mbox).msb, 5, 17)
-#define MBOX_SET_QEC_IDX(mbox, idx)            MBOX_SET_FIELD((mbox).msb, idx, 5, 17)
-#define MBOX_GET_QEC_VALUE(mbox)          	   MBOX_GET_PARAM2(mbox)
-#define MBOX_SET_QEC_VALUE(mbox, value)        MBOX_SET_PARAM2(mbox, value)
+#define MBOX_GET_QEC_CORR_MODE(mbox)            MBOX_GET_FIELD((mbox).msb, 1, 23)
+#define MBOX_SET_QEC_CORR_MODE(mbox, mode)      MBOX_SET_FIELD((mbox).msb, mode, 1, 23)
+#define MBOX_GET_QEC_TX_RX_MODE(mbox)           MBOX_GET_FIELD((mbox).msb, 1, 22)
+#define MBOX_SET_QEC_TX_RX_MODE(mbox, tx_rx)    MBOX_SET_FIELD((mbox).msb, tx_rx, 1, 22)
+#define MBOX_GET_QEC_IDX(mbox)                  MBOX_GET_FIELD((mbox).msb, 5, 17)
+#define MBOX_SET_QEC_IDX(mbox, idx)             MBOX_SET_FIELD((mbox).msb, idx, 5, 17)
+#define MBOX_GET_QEC_VALUE(mbox)                MBOX_GET_PARAM2(mbox)
+#define MBOX_SET_QEC_VALUE(mbox, value)         MBOX_SET_PARAM2(mbox, value)
 	
 /* specific to production VSPA */
 /* Semistatic CFG - 0E */
 /*MSB*/
-#define MBOX_SET_RX_CHAN_RESTART(mbox, cfg)          MBOX_SET_FIELD((mbox).msb, cfg, 1, 21)
-#define MBOX_GET_RX_CHAN_RESTART(mbox)               MBOX_GET_FIELD((mbox).msb, 1, 21)
-#define MBOX_SET_TX_CHAN_RESTART(mbox, cfg)          MBOX_SET_FIELD((mbox).msb, cfg, 1, 20)
-#define MBOX_GET_TX_CHAN_RESTART(mbox)               MBOX_GET_FIELD((mbox).msb, 1, 20)
+#define MBOX_SET_RX_CHAN_RESTART(mbox, cfg)     MBOX_SET_FIELD((mbox).msb, cfg, 1, 21)
+#define MBOX_GET_RX_CHAN_RESTART(mbox)          MBOX_GET_FIELD((mbox).msb, 1, 21)
+#define MBOX_SET_TX_CHAN_RESTART(mbox, cfg)     MBOX_SET_FIELD((mbox).msb, cfg, 1, 20)
+#define MBOX_GET_TX_CHAN_RESTART(mbox)          MBOX_GET_FIELD((mbox).msb, 1, 20)
 #define MBOX_SET_RX_TDD_FDD(mbox, cfg)          MBOX_SET_FIELD((mbox).msb, cfg, 1, 13)
 #define MBOX_GET_RX_TDD_FDD(mbox)               MBOX_GET_FIELD((mbox).msb, 1, 13)
 #define MBOX_SET_TX_TDD_FDD(mbox, cfg)          MBOX_SET_FIELD((mbox).msb, cfg, 1, 12)
 #define MBOX_GET_TX_TDD_FDD(mbox)               MBOX_GET_FIELD((mbox).msb, 1, 12)
 #define MBOX_SET_CPE_BS_MODE(mbox, mode)        MBOX_SET_FIELD((mbox).msb, mode, 1, 10)
 #define MBOX_GET_CPE_BS_MODE(mbox)              MBOX_GET_FIELD((mbox).msb, 1, 10)
+#define MBOX_SET_HOST_BYPASS_TX(mbox, cfg)      MBOX_SET_FIELD((mbox).msb, cfg, 1, 14)
+#define MBOX_GET_HOST_BYPASS_TX(mbox)           MBOX_GET_FIELD((mbox).msb, 1, 14)
+#define MBOX_SET_HOST_BYPASS_RX(mbox, cfg)      MBOX_SET_FIELD((mbox).msb, cfg, 1, 15)
+#define MBOX_GET_HOST_BYPASS_RX(mbox)           MBOX_GET_FIELD((mbox).msb, 1, 15)
 
- 
 /*LSB*/
 #define MBOX_SET_DCS_MAPPING(mbox, map)         MBOX_SET_FIELD((mbox).lsb, map, 1, 23)
 #define MBOX_GET_DCS_MAPPING(mbox)              MBOX_GET_FIELD((mbox).lsb, 1, 23)
