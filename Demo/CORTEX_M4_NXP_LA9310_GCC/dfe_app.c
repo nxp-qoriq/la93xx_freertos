@@ -42,6 +42,15 @@ bool_t bVspaProductionBinary = pdFALSE;
 QueueHandle_t xTimeQueue;
 static TimerHandle_t vspa_timer;
 
+/* RF control structure */
+typedef struct {
+	uint32_t target_phytimer_ts;
+	uint32_t issued_phytimer_ts;
+	uint32_t mode;
+} rf_ctrl_s;
+
+rf_ctrl_s rf_ctrl __attribute__((section(".rfctrl")));
+
 /* BBDEV IPC parameters */
 static int ipc_up = 0;
 static int ipc_dev_id = BBDEV_IPC_DEV_ID_0;
@@ -1349,6 +1358,25 @@ static void prvRxLoop(void *pvParameters)
 	while (1) {
 		prvProcessHostRx();
 	}
+}
+
+void switch_rf(uint32_t mode)
+{
+	uint32_t ts = uGetPhyTimerTimestamp();
+
+	rf_ctrl.mode = mode;
+	rf_ctrl.issued_phytimer_ts = ts + tick_interval[SCS_kHz30];
+	rf_ctrl.target_phytimer_ts = ts + tick_interval[SCS_kHz30] * 2;
+
+	vPhyTimerComparatorConfig( PHY_TIMER_COMP_RFCTL_5,
+                      PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+                      ePhyTimerComparatorOutToggle,
+                      rf_ctrl.issued_phytimer_ts);
+
+	PRINTF("Switch RF (mode = %#x, issued = %#x, target = %#x\n",
+		rf_ctrl.mode,
+		rf_ctrl.issued_phytimer_ts,
+		rf_ctrl.target_phytimer_ts);
 }
 
 int vDFEInit(void)

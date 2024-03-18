@@ -123,4 +123,6 @@ void vFddStartStop(uint32_t start);
 
 static void prvSendMsgToHost(uint32_t type, uint32_t status, int args_count, ...);
 
+void switch_rf(uint32_t mode);
+
 #endif /* __DFE_APP_H__ */

@@ -56,6 +56,8 @@ enum eLa9310DfeTestCmdID
 	TEST_CONFIG_ANT = 13,
 	TEST_CONFIG_BUFFER = 14,
 	TEST_CONFIG_QEC = 15,
+	TEST_RX_TO_TX = 16,
+	TEST_TX_TO_RX = 17,
 	MAX_TEST_CMDS
 };
 
@@ -63,10 +65,8 @@ static const char cCmdDescriptinArr[ MAX_TEST_CMDS ][ MAX_CMD_DESCRIPTION_SIZE ]
 {
     " invokes help ( dfe help )",
     " To force set PhyTimer rf_ctl( dfe 1 <0:5> <0/1>)",
-#if 1
     " To print phy timer counter every 1s for no of. iter (dfe 2 <iter>)",
     " To test busy delay accuracy using phy timer(dfe 3)",
-#endif
     " To trigger VPSA debug breakpoint (dfe 4)",
     " To start PhyTimer TDD demo (dfe 5). Check debug var for total ticks",
     " To stop PhyTimer TDD demo (dfe 6).",
@@ -79,6 +79,8 @@ static const char cCmdDescriptinArr[ MAX_TEST_CMDS ][ MAX_CMD_DESCRIPTION_SIZE ]
     " To config Rx Antenna (dfe 13 <1:4>)",
     " To config Tx/Rx buffers (dfe 14 <rx_addr> <tx_addr> <sym_size/128> <rx_sym_num>, tx_sym_num>)",
     " To config Tx/Rx QEC (dfe 15 <tx/rx> <pt>\r\n\tdfe 15 <tx/rx> <corr> <index> <value>)",
+    " Switch Rx->Tx (dfe 16)",
+    " Switch Tx->Rx (dfe 17)"
 };
 
 static portBASE_TYPE prvDFETest( char * pcWriteBuffer,
@@ -328,6 +330,12 @@ static portBASE_TYPE prvDFETest( char * pcWriteBuffer,
 			break;
 		}
 
+		case TEST_RX_TO_TX:
+			switch_rf(0xAAAAAAAA);
+			break;
+		case TEST_TX_TO_RX:
+			switch_rf(0xBBBBBBBB);
+			break;
 		default:
 
 			for( ulCmd = 0; ulCmd < MAX_TEST_CMDS; ulCmd++ )
