@@ -69,12 +69,12 @@ uint8_t  host_bypass_flag_tx_rx = 1;
 
 tDFEPatternConfig pattern = {
 	.scs = SCS_kHz30,
-	.p = { .dl_slots = 2,
-	       .g1_slots = 5,
-	       .ul_slots = 2,
-	       .g2_slots = 6,
-		   .ul2_slots = 4,
-		   .g3_slots = 1,
+	.p = { .dl1_slots = 3,
+	       .g1_slots = 1,
+	       .ul1_slots = 1,
+	       .dl2_slots = 2,
+		   .g2_slots = 1,
+		   .ul2_slots = 2,
 	     },
 };
 
@@ -694,21 +694,21 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 
 void vConfigTddPattern( tDFEPatternConfig pcfg )
 {
-	/*  __________________________________________________________________
-	* |          |          |          |          |           |          |
-	* | dl_slots | g1_slots | ul_slots | g2_slots | ul2_slots | g3_slots |
-	* |__________|__________|__________|__________|___________|__________|
+	/*  ____________________________________________________________________
+	* |           |          |           |           |          |           |
+	* | dl1_slots | g1_slots | ul1_slots | dl2_slots | g2_slots | ul2_slots |
+	* |___________|__________|___________|___________|__________|___________|
 	*
 	*/
 
 	pattern.scs = pcfg.scs;
 
-	pattern.p.dl_slots = pcfg.p.dl_slots;
+	pattern.p.dl1_slots = pcfg.p.dl1_slots;
 	pattern.p.g1_slots = pcfg.p.g1_slots;
-	pattern.p.ul_slots = pcfg.p.ul_slots;
+	pattern.p.ul1_slots = pcfg.p.ul1_slots;
+	pattern.p.dl2_slots = pcfg.p.dl2_slots;
 	pattern.p.g2_slots = pcfg.p.g2_slots;
 	pattern.p.ul2_slots = pcfg.p.ul2_slots;
-	pattern.p.g3_slots = pcfg.p.g3_slots;
 }
 
 void vPrintTddPattern()
@@ -720,31 +720,34 @@ void vPrintTddPattern()
 
 	PRINTF("\r\nPattern configuration:\r\n");
 	PRINTF("\tSCS: %s\r\n", pattern.scs == SCS_kHz15 ? "15 kHz" : "30 kHz");
-	PRINTF(" __________________________________________________________________ \r\n");
-	PRINTF("|          |          |          |          |           |          |\r\n");
-	PRINTF("| dl_slots | g1_slots | ul_slots | g2_slots | ul2_slots | g3_slots |\r\n");
-	PRINTF("|          |          |          |          |           |          |\r\n");
-	PRINTF("|    %2d    |    %2d    |    %2d    |    %2d    |    %2d     |    %2d    |\r\n",
-			pattern.p.dl_slots,
-			pattern.p.g1_slots,
-			pattern.p.ul_slots,
-			pattern.p.g2_slots,
-			pattern.p.ul2_slots,
-			pattern.p.g3_slots
-  		);
-	PRINTF("|__________|__________|__________|__________|___________|__________|\r\n");
+
+	#define PRINT_PATTERN(field, letter) \
+	do { \
+		for (uint8_t i = 0; i < (field); i++) \
+		PRINTF("%s", (letter)); \
+	} while(0);
+
+	PRINTF("\tPattern: ");
+	PRINT_PATTERN(pattern.p.dl1_slots, "D");
+	PRINT_PATTERN(pattern.p.g1_slots, "G");
+	PRINT_PATTERN(pattern.p.ul1_slots, "U");
+	PRINT_PATTERN(pattern.p.dl2_slots, "D");
+	PRINT_PATTERN(pattern.p.g2_slots, "G");
+	PRINT_PATTERN(pattern.p.ul2_slots, "U");
+	PRINTF("\r\n\r\n");
+
 }
 
 static void prvSetupTdd()
 {
 	uint32_t k = 0;
 
-	ulTotalSlots = pattern.p.dl_slots +
+	ulTotalSlots = pattern.p.dl1_slots +
 				pattern.p.g1_slots +
-				pattern.p.ul_slots +
+				pattern.p.ul1_slots +
+				pattern.p.dl2_slots +
 				pattern.p.g2_slots +
-				pattern.p.ul2_slots +
-				pattern.p.g3_slots;
+				pattern.p.ul2_slots;
 
 	slots = pvPortMalloc(ulTotalSlots);
 	if (!slots) {
@@ -753,53 +756,23 @@ static void prvSetupTdd()
 	}
 	memset(slots, 0, sizeof(tSlot) * ulTotalSlots);
 
-	for (uint8_t i = 0; i < pattern.p.dl_slots; i++) {
-		slots[k].is_dl = 1;
-		slots[k].is_ul = 0;
-		slots[k].start_symbol = 0;
-		slots[k].end_symbol = 13;
-		k++;
-	}
+#define SETUP_SLOT(field, count, ul, dl) \
+	do { \
+		for (uint8_t i = 0; i < (field); i++) { \
+			slots[(count)].is_dl = (dl); \
+			slots[(count)].is_ul = (ul); \
+			slots[(count)].start_symbol = 0; \
+			slots[(count)].end_symbol = 13; \
+			(count)++; \
+		} \
+	} while(0)
 
-	for (uint8_t i = 0; i < pattern.p.g1_slots; i++) {
-		slots[k].is_dl = 0;
-		slots[k].is_ul = 0;
-		slots[k].start_symbol = 0;
-		slots[k].end_symbol = 13;
-		k++;
-	}
-
-	for (uint8_t i = 0; i < pattern.p.ul_slots; i++) {
-		slots[k].is_dl = 0;
-		slots[k].is_ul = 1;
-		slots[k].start_symbol = 0;
-		slots[k].end_symbol = 13;
-		k++;
-	}
-
-	for (uint8_t i = 0; i < pattern.p.g2_slots; i++) {
-		slots[k].is_dl = 0;
-		slots[k].is_ul = 0;
-		slots[k].start_symbol = 0;
-		slots[k].end_symbol = 13;
-		k++;
-	}
-
-	for (uint8_t i = 0; i < pattern.p.ul2_slots; i++) {
-		slots[k].is_dl = 0;
-		slots[k].is_ul = 1;
-		slots[k].start_symbol = 0;
-		slots[k].end_symbol = 13;
-		k++;
-	}
-
-	for (uint8_t i = 0; i < pattern.p.g3_slots; i++) {
-		slots[k].is_dl = 0;
-		slots[k].is_ul = 0;
-		slots[k].start_symbol = 0;
-		slots[k].end_symbol = 13;
-		k++;
-	}
+	SETUP_SLOT(pattern.p.dl1_slots, k, 0, 1);
+	SETUP_SLOT(pattern.p.g1_slots, k, 0, 0);
+	SETUP_SLOT(pattern.p.ul1_slots, k, 1, 0);
+	SETUP_SLOT(pattern.p.dl2_slots, k, 0, 1);
+	SETUP_SLOT(pattern.p.g2_slots, k, 0, 0);
+	SETUP_SLOT(pattern.p.ul2_slots, k, 1, 0);
 
 	vPrintTddPattern();
 }
@@ -1245,12 +1218,12 @@ static void prvProcessRx(struct dfe_msg *msg)
 			break;
 		}
 		pcfg.scs = (msg->payload[0] == 15) ? SCS_kHz15 : SCS_kHz30;
-		pcfg.p.dl_slots = msg->payload[1];
+		pcfg.p.dl1_slots = msg->payload[1];
 		pcfg.p.g1_slots = msg->payload[2];
-		pcfg.p.ul_slots = msg->payload[3];
-		pcfg.p.g2_slots = msg->payload[4];
-		pcfg.p.ul2_slots = msg->payload[5];
-		pcfg.p.g3_slots = msg->payload[6];
+		pcfg.p.ul1_slots = msg->payload[3];
+		pcfg.p.dl2_slots = msg->payload[4];
+		pcfg.p.g2_slots = msg->payload[5];
+		pcfg.p.ul2_slots = msg->payload[6];
 		vConfigTddPattern(pcfg);
 		break;
 	case DFE_CFG_RX_ANTENNA:
@@ -1393,7 +1366,7 @@ int vDFEInit(void)
 
 	memset(app_logging, 0, sizeof(app_logging));
 	stop = pdFALSE;
-	bVspaProductionBinary = !!((iLa9310AviVspaSwVer() & 0xDFEF0000) == 0xDFEF0000);
+	bVspaProductionBinary = !!((iLa9310AviVspaSwVer() & VSPA_SW_VER_PRODUCTION) == VSPA_SW_VER_PRODUCTION);
 
 	prvVspaWarmUp();
 

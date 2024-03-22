@@ -71,7 +71,7 @@ static const char cCmdDescriptinArr[ MAX_TEST_CMDS ][ MAX_CMD_DESCRIPTION_SIZE ]
     " To start PhyTimer TDD demo (dfe 5). Check debug var for total ticks",
     " To stop PhyTimer TDD demo (dfe 6).",
     " To set Tx(ch5)/Rx(ch2) Allowed for FDD (dfe 7 0/1)",
-    " To config TDD pattern (dfe 8 <scs> <dl_slots> <g1_slots> <ul_slots> <g2_slots> <ul2_slots> <g3_slots>",
+    " To config TDD pattern (dfe 8 <scs> <dl1> <g1> <ul1> <dl2> <g2> <ul2>",
     " To set AXIQ loopback (dfe 9 0/1)",
     " To display debug var (dfe 10)",
     " To set TA (for TDD) (dfe 11 <number of phytimer ticks>)",
@@ -213,11 +213,6 @@ static portBASE_TYPE prvDFETest( char * pcWriteBuffer,
 			break;
 
 		case TEST_CONFIG_PATTERN:
-		   /*  __________________________________________________________________
-			* |          |          |          |          |           |          |
-			* | dl_slots | g1_slots | ul_slots | g2_slots | ul2_slots | g3_slots |
-			* |__________|__________|__________|__________|___________|__________|
-			*/
 			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
 			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
 			pcParam3 = FreeRTOS_CLIGetParameter( pcCommandString, 3, &lParameterStringLength );
@@ -234,12 +229,12 @@ static portBASE_TYPE prvDFETest( char * pcWriteBuffer,
 			ulTempVal8 = strtoul( pcParam8, ( char ** ) NULL, 10 );
 
 			pcfg.scs = (ulTempVal2 == 15) ? SCS_kHz15 : SCS_kHz30;
-			pcfg.p.dl_slots = ulTempVal3;
+			pcfg.p.dl1_slots = ulTempVal3;
 			pcfg.p.g1_slots = ulTempVal4;
-			pcfg.p.ul_slots = ulTempVal5;
-			pcfg.p.g2_slots = ulTempVal6;
-			pcfg.p.ul2_slots = ulTempVal7;
-			pcfg.p.g3_slots = ulTempVal8;
+			pcfg.p.ul1_slots = ulTempVal5;
+			pcfg.p.dl2_slots = ulTempVal6;
+			pcfg.p.g2_slots = ulTempVal7;
+			pcfg.p.ul2_slots = ulTempVal8;
 
 			vConfigTddPattern(pcfg);
 			break;
