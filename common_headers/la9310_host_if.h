@@ -248,7 +248,10 @@ struct la9310_hif {
 	uint32_t status;
 	uint32_t host_ready;
 	uint32_t mod_ready;
-	uint32_t dcs_rate;
+	uint32_t adc_mask;
+	uint32_t adc_rate_mask; /* Set indicates half_rate */
+	uint32_t dac_mask;
+	uint32_t dac_rate_mask; /* Set indicates half_rate */
 	uint32_t iq_phys_addr;
 	uint32_t iq_mem_addr;
 	uint32_t iq_mem_size;
@@ -257,7 +260,7 @@ struct la9310_hif {
 	struct la9310_stats stats;
 	struct hif_ipc_regs ipc_regs;
 	struct la9310_sw_cmd_desc sw_cmd_desc;
-        rf_host_if_t rf_hif;
+	rf_host_if_t rf_hif;
 }  __attribute__( ( packed ) );
 
 #define LA9310_VER_MAJOR(ver) ((ver >> 16) & 0xffff)

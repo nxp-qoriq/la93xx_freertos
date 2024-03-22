@@ -7,7 +7,7 @@
 #define __LA9310DCS_API_H__
 
 typedef enum LA9310cvrDCS{
-    XCVR_TRX_TX_DAC,
+    XCVR_TRX_TX_DAC = 0,
     XCVR_TRX_RX1_ADC,
     XCVR_TRX_RX2_ADC,
     XCVR_RO1_ADC,
@@ -31,17 +31,21 @@ typedef enum DCSFreq {
  * @brief vDcsInit
  *
  * Init DCS
- * @param freq: DAC frequency
+ * @param adc_mask: ADC channel enable  mask
+ * @param adc_freq_mask: ADC chanel frequency mask
+ * @param dac_mask: DAC channel enable mask
+ * @param dac_freq_mask: DAC channel frequency mask
 */
-void vDcsInit(int Freq);
+void vDcsInit( int adc_mask, int adc_freq_mask, int dac_mask, int dac_freq_mask)
 
 /*!
- * @brief vLA9310DacClockSwitch
+ * @brief vLA9310DCSClockSwitch
  *
- * Configure DAC clock
- * @param freq: DAC frequency
+ * Configure ADC/DAC clock
+ * @param dcs: DCS channel type
+ * @param freq: frequency
  * @return: pdPASS on success, error number in case of failure
  */
-BaseType_t vLA9310DacClockSwitch(DCSFreq_t freq);
+BaseType_t vLa9310DCSClockSwitch( LA9310XcvrDCS_t dcs,  DCSFreq_t freq )
 
 #endif

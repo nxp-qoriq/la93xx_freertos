@@ -474,10 +474,10 @@ int iInitHandler ( void )
 #endif //TURN_ON_STANDALONE_MODE
     iLa9310AviConfig();
 
-    #if __DCS
-    int dcs_rate = IN_32(&pLa9310Info->pHif->dcs_rate);
-    vDcsInit(dcs_rate);
-    #endif
+    vDcsInit(IN_32(&pLa9310Info->pHif->adc_mask),
+		IN_32(&pLa9310Info->pHif->adc_rate_mask),
+		IN_32(&pLa9310Info->pHif->dac_mask),
+		IN_32(&pLa9310Info->pHif->dac_rate_mask));
 
     #ifdef TURN_ON_HOST_MODE
     #ifdef RUN_V2H_TEST_APP

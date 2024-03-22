@@ -15,13 +15,24 @@
 #include "la9310_dcs.h"
 #include <la9310_dcs_api.h>
 
+
+    /**
+ * Get the uint32_t value for a specified bit set.
+ *
+ * @param nr
+ *   The bit number in range of 0 to 31.
+ */
+#define RTE_BIT32(nr) (UINT32_C(1) << (nr))
+
+
 BaseType_t xLa9310AdcDacPowerUp( LA9310XcvrDCS_t dcs )
 {
     uint32_t ulAdcDacRegVal;
 
+        ulAdcDacRegVal = IN_32( ( uint32_t * ) ( HSADC_ENCTL ) );
+
     if( dcs == XCVR_TRX_TX_DAC )
     {
-        ulAdcDacRegVal = IN_32( ( uint32_t * ) ( HSDAC_ENCTL ) );
         ulAdcDacRegVal |= TX_DAC_POWERCTL;
         OUT_32( HSDAC_ENCTL, ulAdcDacRegVal );
         ulAdcDacRegVal = ADC_POWERON_SYNC_RETRY;
@@ -40,7 +51,6 @@ BaseType_t xLa9310AdcDacPowerUp( LA9310XcvrDCS_t dcs )
     }
     else
     {
-        ulAdcDacRegVal = IN_32( ( uint32_t * ) ( HSADC_ENCTL ) );
 
         if( dcs == XCVR_TRX_RX1_ADC )
         {
@@ -86,11 +96,6 @@ BaseType_t xLa9310ConfigAdcDacClock( LA9310XcvrDCS_t dcs,
                                      int freq )
 {
     uint32_t ulClkCfgRegVal, ulClkCtrlRegVal;
-
-    if( ( freq != Full_Freq ) && ( freq != Half_Freq ) )
-    {
-        return pdFAIL;
-    }
 
     ulClkCfgRegVal = IN_32( ( uint32_t * ) ( ADC_DAC_CLKCFG ) );
     ulClkCtrlRegVal = IN_32( ( uint32_t * ) ( ADC_DAC_CLKCTRL ) );
@@ -355,7 +360,7 @@ BaseType_t xLa9310AdcDacOpModeCtrl( LA9310XcvrDCS_t dcs,
                 OUT_32( HS_RX_ADC0_CFGCTL, ulAdcDacRegVal );
             }
 
-            if( dcs == XCVR_TRX_RX2_ADC )
+            else if( dcs == XCVR_TRX_RX2_ADC )
             {
                 ulAdcDacRegVal =
                     IN_32( ( uint32_t * ) ( HS_RX_ADC1_CFGCTL ) );
@@ -365,7 +370,7 @@ BaseType_t xLa9310AdcDacOpModeCtrl( LA9310XcvrDCS_t dcs,
                 OUT_32( HS_RX_ADC1_CFGCTL, ulAdcDacRegVal );
             }
 
-            if( dcs == XCVR_RO1_ADC )
+            else if( dcs == XCVR_RO1_ADC )
             {
                 ulAdcDacRegVal =
                     IN_32( ( uint32_t * ) ( HS_RXO_ADC0_CFGCTL ) );
@@ -375,7 +380,7 @@ BaseType_t xLa9310AdcDacOpModeCtrl( LA9310XcvrDCS_t dcs,
                 OUT_32( HS_RXO_ADC0_CFGCTL, ulAdcDacRegVal );
             }
 
-            if( dcs == XCVR_RO2_ADC )
+            else if( dcs == XCVR_RO2_ADC )
             {
                 ulAdcDacRegVal =
                     IN_32( ( uint32_t * ) ( HS_RXO_ADC1_CFGCTL ) );
@@ -402,7 +407,7 @@ BaseType_t xLa9310AdcDacOpModeCtrl( LA9310XcvrDCS_t dcs,
                 OUT_32( HS_RX_ADC0_CFGCTL, ulAdcDacRegVal );
             }
 
-            if( dcs == XCVR_TRX_RX2_ADC )
+            else if( dcs == XCVR_TRX_RX2_ADC )
             {
                 ulAdcDacRegVal =
                     IN_32( ( uint32_t * ) ( HS_RX_ADC1_CFGCTL ) );
@@ -417,7 +422,7 @@ BaseType_t xLa9310AdcDacOpModeCtrl( LA9310XcvrDCS_t dcs,
                 OUT_32( HS_RX_ADC1_CFGCTL, ulAdcDacRegVal );
             }
 
-            if( dcs == XCVR_RO1_ADC )
+            else if( dcs == XCVR_RO1_ADC )
             {
                 ulAdcDacRegVal =
                     IN_32( ( uint32_t * ) ( HS_RXO_ADC0_CFGCTL ) );
@@ -432,7 +437,7 @@ BaseType_t xLa9310AdcDacOpModeCtrl( LA9310XcvrDCS_t dcs,
                 OUT_32( HS_RXO_ADC0_CFGCTL, ulAdcDacRegVal );
             }
 
-            if( dcs == XCVR_RO2_ADC )
+            else if( dcs == XCVR_RO2_ADC )
             {
                 ulAdcDacRegVal =
                     IN_32( ( uint32_t * ) ( HS_RXO_ADC1_CFGCTL ) );
@@ -459,7 +464,7 @@ BaseType_t xLa9310AdcDacOpModeCtrl( LA9310XcvrDCS_t dcs,
                 OUT_32( HS_RX_ADC0_CFGCTL, ulAdcDacRegVal );
             }
 
-            if( dcs == XCVR_TRX_RX2_ADC )
+            else if( dcs == XCVR_TRX_RX2_ADC )
             {
                 ulAdcDacRegVal =
                     IN_32( ( uint32_t * ) ( HS_RX_ADC1_CFGCTL ) );
@@ -469,7 +474,7 @@ BaseType_t xLa9310AdcDacOpModeCtrl( LA9310XcvrDCS_t dcs,
                 OUT_32( HS_RX_ADC1_CFGCTL, ulAdcDacRegVal );
             }
 
-            if( dcs == XCVR_RO1_ADC )
+            else if( dcs == XCVR_RO1_ADC )
             {
                 ulAdcDacRegVal =
                     IN_32( ( uint32_t * ) ( HS_RXO_ADC0_CFGCTL ) );
@@ -479,7 +484,7 @@ BaseType_t xLa9310AdcDacOpModeCtrl( LA9310XcvrDCS_t dcs,
                 OUT_32( HS_RXO_ADC0_CFGCTL, ulAdcDacRegVal );
             }
 
-            if( dcs == XCVR_RO2_ADC )
+            else if( dcs == XCVR_RO2_ADC )
             {
                 ulAdcDacRegVal =
                     IN_32( ( uint32_t * ) ( HS_RXO_ADC1_CFGCTL ) );
@@ -550,22 +555,22 @@ BaseType_t xLa9310AdcDacSetGateReady( LA9310XcvrDCS_t dcs )
         ulAdcDacRegVal &= ~TX_DAC_GATE_RDY;
     }
 
-    if( dcs == XCVR_TRX_RX1_ADC )
+    else if( dcs == XCVR_TRX_RX1_ADC )
     {
         ulAdcDacRegVal &= ~RX1_ADC_GATE_RDY;
     }
 
-    if( dcs == XCVR_TRX_RX2_ADC )
+    else if( dcs == XCVR_TRX_RX2_ADC )
     {
         ulAdcDacRegVal &= ~RX2_ADC_GATE_RDY;
     }
 
-    if( dcs == XCVR_RO1_ADC )
+    else if( dcs == XCVR_RO1_ADC )
     {
         ulAdcDacRegVal &= ~RO1_ADC_GATE_RDY;
     }
 
-    if( dcs == XCVR_RO2_ADC )
+    else if( dcs == XCVR_RO2_ADC )
     {
         ulAdcDacRegVal &= ~RO2_ADC_GATE_RDY;
     }
@@ -589,14 +594,27 @@ BaseType_t xLa9310AdcDacSetGateReady( LA9310XcvrDCS_t dcs )
     return pdPASS;
 }
 
-void vDcsInit( int Freq )
+void vDcsInit( int adc_mask, int adc_freq_mask, int dac_mask, int dac_freq_mask)
 {
     /* Init all ADC */
-    uint8_t dcs;
+    uint8_t dcs = XCVR_TRX_RX1_ADC;
+    int Freq;
 
-    for( dcs = XCVR_TRX_RX1_ADC; dcs <= XCVR_RO2_ADC; dcs++ )
+    for(dcs = XCVR_TRX_RX1_ADC; dcs <= XCVR_RO2_ADC; dcs++ )
     {
-    	/* Configure the ADC clock */
+
+        if (RTE_BIT32((dcs -1)) & adc_mask == 0) {
+                /* keep it power down */
+                xLa9310AdcDacPowerDown(dcs);
+                continue;
+        }
+
+        if (RTE_BIT32((dcs -1)) & adc_freq_mask == 0)
+                Freq = Half_Freq;
+		else
+                Freq = Full_Freq;
+
+        /* Configure the ADC clock */
         xLa9310ConfigAdcDacClock( dcs, Freq );
 
     	/* Enable and Reset the ADC */
@@ -604,66 +622,69 @@ void vDcsInit( int Freq )
         xLa9310ResetAdcDac( dcs );
 
     	/* Configure the ADC */
-    	xLa9310AdcDacOpModeCtrl( dcs, OPM_ENABLE );
+        xLa9310AdcDacOpModeCtrl( dcs, OPM_ENABLE );
 
     	/* Wait for ADC ready and trigger the Gate signal */
         xLa9310AdcDacSetGateReady( dcs );
     }
 
-#ifdef DAC
     /* Init DAC */
+    if (dac_mask & 0x1) {
+	if (dac_freq_mask == 0x1)
+		Freq = Half_Freq;
+	else
+		Freq = Full_Freq;
 
-    /* Configure the DAC clock */
-    xLa9310ConfigAdcDacClock( XCVR_TRX_TX_DAC, Freq );
+        /* Configure the DAC clock */
+        xLa9310ConfigAdcDacClock( XCVR_TRX_TX_DAC, Freq );
 
-    /* Enable and Reset the DAC */
-    xLa9310AdcDacPowerUp( XCVR_TRX_TX_DAC );
-    xLa9310ResetAdcDac( XCVR_TRX_TX_DAC );
+        /* Enable and Reset the DAC */
+        xLa9310AdcDacPowerUp( XCVR_TRX_TX_DAC );
+        xLa9310ResetAdcDac( XCVR_TRX_TX_DAC );
 
-    /* Configure the DAC */
-    xLa9310AdcDacOpModeCtrl( XCVR_TRX_TX_DAC, OPM_ENABLE );
+        /* Configure the DAC */
+        xLa9310AdcDacOpModeCtrl( XCVR_TRX_TX_DAC, OPM_ENABLE );
 
-    /* Wait for DAC ready and trigger the Gate signal */
-    xLa9310AdcDacSetGateReady( XCVR_TRX_TX_DAC );
+        /* Wait for DAC ready and trigger the Gate signal */
+        xLa9310AdcDacSetGateReady( XCVR_TRX_TX_DAC );
 
-    log_info( "%s: DAC Init completed\r\n",
-               __func__ );
-#endif
+        log_info( "%s: DAC Init completed\r\n",  __func__ );
+    }
 
-    log_info("DSC Init completed\r\n");
+    log_info("DCS Init completed\r\n");
 }
 
 
-BaseType_t vLa9310DacClockSwitch( DCSFreq_t freq )
+BaseType_t vLa9310DCSClockSwitch( LA9310XcvrDCS_t dcs,  DCSFreq_t freq )
 {
     BaseType_t xRet;
 
     do
     {
         /* Power down the DAC */
-        xRet = xLa9310AdcDacOpModeCtrl( XCVR_TRX_TX_DAC, OPM_DISABLE );
+        xRet = xLa9310AdcDacOpModeCtrl( dcs, OPM_DISABLE );
 
         if( pdPASS != xRet )
         {
-            log_err( "%s: DAC power down failed.\n\r", __func__ );
+            log_err( "%s: DCS (%d) power down failed.\n\r", dcs, __func__ );
             break;
         }
 
         /* Configure the clock */
-        xRet = xLa9310ConfigAdcDacClock( XCVR_TRX_TX_DAC, freq );
+        xRet = xLa9310ConfigAdcDacClock( dcs, freq );
 
         if( pdPASS != xRet )
         {
-            log_err( "%s: DAC clk config failed.\n\r", __func__ );
+            log_err( "%s: DCS (%d) clk config failed.\n\r", dcs, __func__ );
             break;
         }
 
         /* Power up the DAC */
-        xRet = xLa9310AdcDacOpModeCtrl( XCVR_TRX_TX_DAC, OPM_ENABLE );
+        xRet = xLa9310AdcDacOpModeCtrl( dcs, OPM_ENABLE );
 
         if( pdPASS != xRet )
         {
-            log_err( "%s: DAC power up failed.\n\r", __func__ );
+            log_err( "%s: DCS (%d) power up failed.\n\r", dcs, __func__ );
             break;
         }
     } while( false );
