@@ -353,7 +353,10 @@ int iInitHandler ( void )
 
     ulMemLogIndex = 0;
 
+#ifndef LA9310_DFE_APP
+    /* Let PhyTimer control RFCTL[] GPIOs  */
     iGpioInitRFIC();
+#endif
     vEnableExceptions();
 
     pLa9310Info = pvPortMalloc( sizeof( struct la9310_info ) );
