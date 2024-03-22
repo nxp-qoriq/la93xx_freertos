@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright 2017-2018, 2021 NXP
+ * Copyright 2017-2018, 2021-2024 NXP
  */
 
 #ifndef __IMMAP_H__
@@ -42,6 +42,8 @@
 #define RCW_COMPLETIONR               ( CCSR_RST_BASE_ADDRESS + RCW_COMPLETIONR_OFFSET )
 #define PBI_COMPLETIONR               ( CCSR_RST_BASE_ADDRESS + PBI_COMPLETIONR_OFFSET )
 #define RSTSR                         ( CCSR_RST_BASE_ADDRESS + RSTSR_OFFSET )
+
+#define TMU_BASE_ADDR           (CCSR_BASE_ADDR + 0x1F80000)
 
 /* Pin Mux configuration registers */
 struct ccsr_pmux
