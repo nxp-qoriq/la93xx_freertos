@@ -58,12 +58,6 @@ endif()
 # Enable/Disable RFIC driver
 SET(RFIC ON)
 
-# Enable/Disable DCS driver
-SET(DCS ON)
-
-# Enable/Disable DAC
-SET(DAC ON)
-
 # C MACRO
 if(LA9310_TURN_ON_COMMAND_LINE)
     SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -D__NDEBUG -DLA9310_ENABLE_COMMAND_LINE")
@@ -80,14 +74,6 @@ endif()
 
 if(RFIC)
     SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -D__RFIC")
-endif()
-
-if(DCS)
-    SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -D__DCS")
-endif()
-
-if(DAC)
-    SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -DDAC")
 endif()
 
 # CXX MACRO
