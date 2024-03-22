@@ -31,12 +31,12 @@ typedef enum e_scs {
  * 
  */
 typedef struct sPattern {
-	uint8_t dl_slots;
+	uint8_t dl1_slots;
 	uint8_t g1_slots;
-	uint8_t ul_slots;
+	uint8_t ul1_slots;
+	uint8_t dl2_slots;
 	uint8_t g2_slots;
 	uint8_t ul2_slots;
-	uint8_t g3_slots;
 } tPattern;
 
 typedef struct sSlot {
