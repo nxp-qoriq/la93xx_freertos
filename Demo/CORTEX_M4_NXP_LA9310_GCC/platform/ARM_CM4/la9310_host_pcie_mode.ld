@@ -144,6 +144,8 @@ SECTIONS
     __DATA_RAM = .;
     __data_start__ = .;      /* create a global symbol at data start */
     __m_data_start = .;      /* create a global symbol at data start */
+    *(.rfctrl)               /* .rfctrl section */
+    *(.rfctrl*)              /* .rfctrl* section */
     *(.data)                 /* .data sections */
     *(.data*)                /* .data* sections */
     KEEP(*(.jcr*))

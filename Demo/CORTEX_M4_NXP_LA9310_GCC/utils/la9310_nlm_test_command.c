@@ -34,6 +34,9 @@
 #endif
 #include "../drivers/avi/la9310_vspa_dma.h"
 
+extern void switch_rf(uint32_t mode);
+
+
 uint32_t ulEdmaDemoInfo = 0xaa55aa55;
 extern struct la9310_info * pLa9310Info;
 
@@ -65,6 +68,8 @@ enum eLa9310TestCmdID
 #ifdef TURN_ON_STANDALONE_MODE
     TEST_CRC=19,
 #endif
+    TEST_RX_TO_TX = 20,
+    TEST_TX_TO_RX = 21,
     MAX_TEST_CMDS
 };
 
@@ -108,8 +113,10 @@ static const char cCmdDescriptinArr[ MAX_TEST_CMDS ][ MAX_CMD_DESCRIPTION_SIZE ]
 #ifdef TURN_ON_STANDALONE_MODE
     " To load vspa overlay (test 17 ovl_num (1/2 (.overlay_1/.overlay_2)",
     " To verify vspa table (test 18)",
-    " To verify CRC of images (test 19)"
+    " To verify CRC of images (test 19)",
 #endif
+    " Switch Rx->Tx (test 20)",
+    " Switch Tx->Rx (test 21)"
 };
 
 
@@ -425,6 +432,12 @@ static portBASE_TYPE prvNLMTest( char * pcWriteBuffer,
 			vLa9310VerifyCRC();
 			break;
 		#endif //TURN_ON_STANDALONE_MODE
+		case TEST_RX_TO_TX:
+			switch_rf(0xAAAAAAAA);
+			break;
+		case TEST_TX_TO_RX:
+			switch_rf(0xBBBBBBBB);
+			break;
 		default:
 
 			for( ulCmd = 0; ulCmd < MAX_TEST_CMDS; ulCmd++ )
