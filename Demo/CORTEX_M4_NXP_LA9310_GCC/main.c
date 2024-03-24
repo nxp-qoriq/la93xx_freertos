@@ -244,7 +244,7 @@ void iGpioInitRFIC( void )
 {
     int iCnt = 0;
 
-    for( iCnt = 6; iCnt <= 12; iCnt++ )
+    for( iCnt = 6; iCnt < 12; iCnt++ )
     {
         vGpioSetPinMuxSingle( iCnt, SET_MUX_GPIO_MODE );
         iGpioInit( iCnt, output, false );

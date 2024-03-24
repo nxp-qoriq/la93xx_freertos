@@ -126,15 +126,11 @@ SET(LA9310_SOURCES
     "${ProjDirPath}/main.c"
     "${ProjDirPath}/la9310_demo.c"
     "${ProjDirPath}/la9310_irq.c"
-    #"${ProjDirPath}/la9310_v2h_test.c"
-    #"${ProjDirPath}/bbdev_ipc_raw_demo.c"
-    #"${ProjDirPath}/drivers/misc/bbdev_ipc.c"
     "${ProjDirPath}/drivers/avi/la9310_avi.c"
     "${ProjDirPath}/drivers/avi/la9310_vspa_dma.c"
     "${ProjDirPath}/drivers/misc/la9310_gpio.c"
     "${ProjDirPath}/drivers/misc/la9310_pinmux.c"
     "${ProjDirPath}/drivers/i2c/la9310_i2c.c"
-    #"${ProjDirPath}/drivers/pcie/la9310_pcie.c"
     "${ProjDirPath}/drivers/dspi/fsl_dspi.c"
     "${ProjDirPath}/drivers/dspi/dspi_test.c"
     "${ProjDirPath}/drivers/phy_timer/phytimer.c"
@@ -221,6 +217,7 @@ if(RFIC)
         "${ProjDirPath}/drivers/rfic/rfic_demod.c"
         "${ProjDirPath}/drivers/rfic/rfic_cmd.c"
         "${ProjDirPath}/drivers/rfic/rfic_dac.c"
+	"${ProjDirPath}/rfnm_rf_ctrl.c"
         )
 endif()
 
