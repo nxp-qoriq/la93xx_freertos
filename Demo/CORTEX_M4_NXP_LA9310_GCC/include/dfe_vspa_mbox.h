@@ -102,6 +102,11 @@ struct dfe_mbox {
 #define MBOX_SET_STOP_SYM(mbox, nr)             MBOX_SET_FIELD((mbox).msb, nr, 4, 16)
 #define MBOX_GET_STOP_SYM(mbox)                 MBOX_GET_FIELD((mbox).msb, 4, 16)
 
+#define MBOX_SET_SLOT_NUM(mbox, slot)           MBOX_SET_FIELD((mbox).msb, slot, 8, 8)
+#define MBOX_GET_SLOT_NUM(mbox)                 MBOX_GET_FIELD((mbox).msb, 8, 8)
+#define MBOX_SET_SLOT_IDX(mbox, slot)           MBOX_SET_FIELD((mbox).msb, slot, 8, 0)
+#define MBOX_GET_SLOT_IDX(mbox)                 MBOX_GET_FIELD((mbox).msb, 8, 0)
+
 #define MBOX_SET_PARAM1(mbox, p)                MBOX_SET_FIELD((mbox).msb, p, 24, 0)
 #define MBOX_GET_PARAM1(mbox)                   MBOX_GET_FIELD((mbox).msb, 24, 0)
 #define MBOX_GET_PARAM1_SIGNED(mbox)            (((int)MBOX_GET_PARAM1(mbox) << 8) >> 8)
@@ -123,9 +128,6 @@ struct dfe_mbox {
 #define MBOX_SET_NUM_PARALLEL_DMAS(mbox, num)   MBOX_SET_FIELD((mbox).lsb, num, 4, 24)
 #define MBOX_GET_NUM_LOOPS(mbox)                MBOX_GET_FIELD((mbox).lsb, 4, 20)
 #define MBOX_SET_NUM_LOOPS(mbox, num)           MBOX_SET_FIELD((mbox).lsb, num, 4, 20)
-
-#define MBOX_SET_SLOT_IDX(mbox, slot)           MBOX_SET_FIELD((mbox).msb, slot, 8, 0)
-#define MBOX_GET_SLOT_IDX(mbox)                 MBOX_GET_FIELD((mbox).msb, 8, 0)
 
 #if 0 /* moved in host interface header */
 /* QEC-related */
