@@ -83,6 +83,7 @@ static bool_t bTddConfigDone = 0;
 
 static uint32_t ulNextTick;
 static uint32_t ulCurrentSlot;
+static uint32_t ulCurrentSlotInFrame;
 static uint32_t ulTotalSlots;
 static int32_t iTimeAdvance;
 uint32_t ulTotalTicks;
@@ -115,6 +116,11 @@ const uint32_t slot_duration[SCS_MAX] = {
 const uint32_t tick_interval[SCS_MAX] = {
 	[SCS_kHz15]  = 30720 * 2,  /* 61.44MHz * 1000us */
 	[SCS_kHz30]  = 30720,      /* 61.44MHz * 500us */
+};
+
+const uint32_t max_slots_per_frame[SCS_MAX] = {
+	[SCS_kHz15]  = 10,
+	[SCS_kHz30]  = 20,
 };
 
 sTraceEntry app_logging[MAX_TS] = { 0 };
@@ -644,7 +650,8 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 		MBOX_SET_OPCODE(mbox_h2v, MBOX_OPC_TDD_RX);
 		MBOX_SET_START_SYM(mbox_h2v, slots[ulCurrentSlot].start_symbol);
 		MBOX_SET_STOP_SYM(mbox_h2v, slots[ulCurrentSlot].end_symbol);
-		MBOX_SET_SLOT_IDX(mbox_h2v, ulCurrentSlot);
+		MBOX_SET_SLOT_NUM(mbox_h2v, max_slots_per_frame[pattern.scs]);
+		MBOX_SET_SLOT_IDX(mbox_h2v, ulCurrentSlotInFrame);
 		prvSendVspaCmd(&mbox_h2v, 0xDEAD, NO_WAIT);
 		ulVspaMsgRxCnt++;
 	}
@@ -657,7 +664,8 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 		MBOX_SET_OPCODE(mbox_h2v, MBOX_OPC_TDD_TX);
 		MBOX_SET_START_SYM(mbox_h2v, slots[ulCurrentSlot].start_symbol);
 		MBOX_SET_STOP_SYM(mbox_h2v, slots[ulCurrentSlot].end_symbol);
-		MBOX_SET_SLOT_IDX(mbox_h2v, ulCurrentSlot);
+		MBOX_SET_SLOT_NUM(mbox_h2v, max_slots_per_frame[pattern.scs]);
+		MBOX_SET_SLOT_IDX(mbox_h2v, ulCurrentSlotInFrame);
 		prvSendVspaCmd(&mbox_h2v, 0xDEAD, NO_WAIT);
 		ulVspaMsgTxCnt++;
 	}
@@ -666,6 +674,10 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 	ulCurrentSlot++;
 	ulCurrentSlot %= ulTotalSlots;
 	ulTotalTicks++;
+	/* pattern may be shorter than frame */
+	ulCurrentSlotInFrame++;
+	ulCurrentSlotInFrame %= max_slots_per_frame[pattern.scs];
+
 
 #if 0
 	/* DEBUG: add stop condition after end of pattern */
@@ -1358,6 +1370,7 @@ int vDFEInit(void)
 
 	/* stats init */
 	ulCurrentSlot = 0;
+	ulCurrentSlotInFrame = 0;
 	ulTotalSlots = 0;
 	ulTotalTicks = 0;
 	ulVspaMsgCnt = 0;
