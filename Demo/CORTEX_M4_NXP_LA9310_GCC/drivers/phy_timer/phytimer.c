@@ -77,6 +77,15 @@ void vPhyTimerComparatorConfig( uint8_t ucComparator,
     OUT_32( &regs->xTmPhyTmrN[ ucComparator ].ulTmPhyTmrCnv, ulTriggerValue );
 }
 
+void vPhyTimerComparatorUpdate( uint8_t ucComparator,
+		                uint8_t ucFlags,
+                                enum ePhyTimerComparatorTrigger eCmpTrig,
+                                uint32_t ulTriggerValue )
+{
+    OUT_32( &regs->xTmPhyTmrN[ ucComparator ].ulTmPhyTmrCncrs, ( uint32_t ) ucFlags | eCmpTrig );
+    OUT_32( &regs->xTmPhyTmrN[ ucComparator ].ulTmPhyTmrCnv, ulTriggerValue );
+}
+
 uint32_t ulPhyTimerComparatorRead( uint8_t ucComparator )
 {
     return IN_32( &regs->xTmPhyTmrN[ ucComparator ].ulTmPhyTmrCnv );

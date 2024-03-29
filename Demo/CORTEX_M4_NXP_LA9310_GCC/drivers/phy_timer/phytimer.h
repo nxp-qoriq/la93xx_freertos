@@ -207,6 +207,11 @@ void vPhyTimerComparatorConfig( uint8_t ucComparator,
                                 enum ePhyTimerComparatorTrigger eCmpTrig,
                                 uint32_t ulTriggerValue );
 
+void vPhyTimerComparatorUpdate( uint8_t ucComparator,
+                                uint8_t ucFlags,
+                                enum ePhyTimerComparatorTrigger eCmpTrig,
+                                uint32_t ulTriggerValue );
+
 /**
  *  @Function	    ulPhyTimerComparatorRead
  *
