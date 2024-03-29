@@ -71,7 +71,7 @@ static const char cCmdDescriptinArr[ MAX_TEST_CMDS ][ MAX_CMD_DESCRIPTION_SIZE ]
     " To start PhyTimer TDD demo (dfe 5). Check debug var for total ticks",
     " To stop PhyTimer TDD demo (dfe 6).",
     " To set Tx(ch5)/Rx(ch2) Allowed for FDD (dfe 7 0/1)",
-    " To config TDD pattern (dfe 8 <scs> <dl1> <g1> <ul1> <dl2> <g2> <ul2>",
+    " To config SCS and set TDD pattern to DDDSU, S=6:4:4 (dfe 8 <scs>) ",
     " To set AXIQ loopback (dfe 9 0/1)",
     " To display debug var (dfe 10)",
     " To set TA (for TDD) (dfe 11 <number of phytimer ticks>)",
@@ -107,7 +107,7 @@ static portBASE_TYPE prvDFETest( char * pcWriteBuffer,
                                  size_t xWriteBufferLen,
                                  const char * pcCommandString )
 {
-    const char * pcParam1, * pcParam2, * pcParam3, * pcParam4, * pcParam5, * pcParam6, * pcParam7, * pcParam8;
+    const char * pcParam1, * pcParam2, * pcParam3, * pcParam4, * pcParam5, * pcParam6;
     BaseType_t lParameterStringLength;
     uint32_t ulCmd = 0;
     uint32_t ulTempVal2 = 0;
@@ -115,10 +115,7 @@ static portBASE_TYPE prvDFETest( char * pcWriteBuffer,
     uint32_t ulTempVal4 = 0;
     uint32_t ulTempVal5 = 0;
     uint32_t ulTempVal6 = 0;
-    uint32_t ulTempVal7 = 0;
-    uint32_t ulTempVal8 = 0;
     uint32_t i;
-    tDFEPatternConfig pcfg;
 	float fTempVal = 0;
 
     ( void ) pcCommandString;
@@ -174,6 +171,7 @@ static portBASE_TYPE prvDFETest( char * pcWriteBuffer,
  			status = ulPhyTimerComparatorGetStatus(uTxAntennaComparator);
  			PRINTF("PHY_TIMER_COMP_TX_ALLOWED: %#x\r\n", status);
 
+			dump_slots();
 			vTraceEventShow();
 			break;
 
@@ -215,28 +213,8 @@ static portBASE_TYPE prvDFETest( char * pcWriteBuffer,
 		case TEST_CONFIG_PATTERN:
 			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
 			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
-			pcParam3 = FreeRTOS_CLIGetParameter( pcCommandString, 3, &lParameterStringLength );
-			ulTempVal3 = strtoul( pcParam3, ( char ** ) NULL, 10 );
-			pcParam4 = FreeRTOS_CLIGetParameter( pcCommandString, 4, &lParameterStringLength );
-			ulTempVal4 = strtoul( pcParam4, ( char ** ) NULL, 10 );
-			pcParam5 = FreeRTOS_CLIGetParameter( pcCommandString, 5, &lParameterStringLength );
-			ulTempVal5 = strtoul( pcParam5, ( char ** ) NULL, 10 );
-			pcParam6 = FreeRTOS_CLIGetParameter( pcCommandString, 6, &lParameterStringLength );
-			ulTempVal6 = strtoul( pcParam6, ( char ** ) NULL, 10 );
-			pcParam7 = FreeRTOS_CLIGetParameter( pcCommandString, 7, &lParameterStringLength );
-			ulTempVal7 = strtoul( pcParam7, ( char ** ) NULL, 10 );
-			pcParam8 = FreeRTOS_CLIGetParameter( pcCommandString, 8, &lParameterStringLength );
-			ulTempVal8 = strtoul( pcParam8, ( char ** ) NULL, 10 );
 
-			pcfg.scs = (ulTempVal2 == 15) ? SCS_kHz15 : SCS_kHz30;
-			pcfg.p.dl1_slots = ulTempVal3;
-			pcfg.p.g1_slots = ulTempVal4;
-			pcfg.p.ul1_slots = ulTempVal5;
-			pcfg.p.dl2_slots = ulTempVal6;
-			pcfg.p.g2_slots = ulTempVal7;
-			pcfg.p.ul2_slots = ulTempVal8;
-
-			vConfigTddPattern(pcfg);
+			vSetupTddPattern((ulTempVal2 == 15) ? SCS_kHz15 : SCS_kHz30);
 			break;
 
 		case TEST_CONFIG_AXIQ_LB:

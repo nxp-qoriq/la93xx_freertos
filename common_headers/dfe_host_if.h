@@ -19,7 +19,7 @@ enum dfe_host_to_modem_msg_type {
 	DFE_TDD_STOP,
 	DFE_FDD_START,
 	DFE_FDD_STOP,
-	DFE_TDD_CFG_PATTERN,
+	DFE_CFG_SCS,
 	DFE_CFG_RX_ANTENNA,
 	DFE_CFG_SYM_SIZE,
 	DFE_CFG_RX_ADDR,
@@ -32,6 +32,7 @@ enum dfe_host_to_modem_msg_type {
 	DFE_VSPA_DEBUG_BP,
 	DFE_VSPA_DMA_BENCH,
 	DFE_VSPA_PROD_HOST_BYPASS,
+	DFE_TDD_CFG_PATTERN_NEW,
 	DFE_H2M_MAX_OPS,
 };
 
@@ -87,7 +88,9 @@ typedef enum {
 	QEC_MAX_CORR
 } qec_tx_rx_mode_e;
 
-#define MAX_MSG_PAYLOAD		8 /* words */
+#define MAX_SLOTS           20 /* number of total configurable slots */
+
+#define MAX_MSG_PAYLOAD     8  /* words */
 struct dfe_msg {
 	uint32_t type;          /* msg type */
 	uint32_t status;        /* msg status, typically used for responses only */
