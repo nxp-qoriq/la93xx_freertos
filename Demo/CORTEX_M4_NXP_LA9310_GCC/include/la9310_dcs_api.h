@@ -36,7 +36,7 @@ typedef enum DCSFreq {
  * @param dac_mask: DAC channel enable mask
  * @param dac_freq_mask: DAC channel frequency mask
 */
-void vDcsInit( int adc_mask, int adc_freq_mask, int dac_mask, int dac_freq_mask)
+void vDcsInit( int adc_mask, int adc_freq_mask, int dac_mask, int dac_freq_mask);
 
 /*!
  * @brief vLA9310DCSClockSwitch
@@ -46,6 +46,6 @@ void vDcsInit( int adc_mask, int adc_freq_mask, int dac_mask, int dac_freq_mask)
  * @param freq: frequency
  * @return: pdPASS on success, error number in case of failure
  */
-BaseType_t vLa9310DCSClockSwitch( LA9310XcvrDCS_t dcs,  DCSFreq_t freq )
+BaseType_t vLa9310DCSClockSwitch( LA9310XcvrDCS_t dcs,  DCSFreq_t freq );
 
 #endif

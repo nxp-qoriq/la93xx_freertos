@@ -27,7 +27,7 @@
 #include <sw_cmd_engine.h>
 #include "la9310_v2h_if.h"
 #include "drivers/avi/la9310_vspa_dma.h"
-
+#include <la9310_dcs_api.h>
 
 #if NXP_ERRATUM_A_009410
     #include "la9310_pci.h"
