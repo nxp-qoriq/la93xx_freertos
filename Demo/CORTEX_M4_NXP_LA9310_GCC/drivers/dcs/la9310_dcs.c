@@ -603,15 +603,15 @@ void vDcsInit( int adc_mask, int adc_freq_mask, int dac_mask, int dac_freq_mask)
     for(dcs = XCVR_TRX_RX1_ADC; dcs <= XCVR_RO2_ADC; dcs++ )
     {
 
-        if (RTE_BIT32((dcs -1)) & adc_mask == 0) {
+        if ((RTE_BIT32((dcs -1)) & adc_mask) == 0) {
                 /* keep it power down */
                 xLa9310AdcDacPowerDown(dcs);
                 continue;
         }
 
-        if (RTE_BIT32((dcs -1)) & adc_freq_mask == 0)
+        if ((RTE_BIT32((dcs -1)) & adc_freq_mask) == 0)
                 Freq = Half_Freq;
-		else
+	else
                 Freq = Full_Freq;
 
         /* Configure the ADC clock */

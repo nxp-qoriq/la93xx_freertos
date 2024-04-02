@@ -100,9 +100,7 @@ endif()
 if(RFIC)
     INCLUDE_DIRECTORIES(${ProjDirPath}/drivers/rfic/)
 endif()
-if(DCS)
     INCLUDE_DIRECTORIES(${ProjDirPath}/drivers/dcs)
-endif()
 
 if(TURN_ON_STANDALONE_MODE)
 SET(LA9310_SOURCES
@@ -185,11 +183,9 @@ SET(LA9310_SOURCES
     "${ProjDirPath}/utils/delay.c"
   )
 endif()
-if(DCS)
     SET(LA9310_SOURCES ${LA9310_SOURCES}
     	"${ProjDirPath}/drivers/dcs/la9310_dcs.c"
       )
-endif()
 
 if(LA9310_TURN_ON_COMMAND_LINE)
     SET(LA9310_SOURCES ${LA9310_SOURCES}
