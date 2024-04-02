@@ -14,7 +14,7 @@
 volatile rf_ctrl_s rf_ctrl __attribute__((section(".rfctrl")));
 
 /* routine for returning the current timer value */
-inline uint32_t uGetPhyTimerTimestamp(void)
+static inline uint32_t uGetPhyTimerTimestamp(void)
 {
 	return ulPhyTimerCapture( PHY_TIMER_COMPARATOR_COUNT - 1 );
 }
