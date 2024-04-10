@@ -10,6 +10,8 @@
 
 #include <linux/ioctl.h>
 
+#define LA9310_TTI_DEVNAME_PREFIX "-tti"
+
 #define LA9310_TTI_MAGIC   'T'
 
 #define IOCTL_LA9310_MODEM_TTI_REGISTER	_IOWR(LA9310_TTI_MAGIC, 1, struct tti *)
