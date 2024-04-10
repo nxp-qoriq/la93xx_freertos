@@ -24,7 +24,7 @@ typedef struct modinfo_socrev {
 } modinfo_socrev_t;
 
 typedef struct modinfo_stat {
-	char target_stat[2048];
+	char target_stat[1560];
 } modinfo_s;
 
 typedef struct modinfo {
