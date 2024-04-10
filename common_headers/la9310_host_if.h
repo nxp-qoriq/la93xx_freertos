@@ -7,6 +7,9 @@
 #include "la9310_v2h_if.h"
 #include "rfic_hif.h"
 
+#define LA9310_DEV_NAME_PREFIX	"shiva"
+#define LA9310_SUBDEV_NAME(B) LA9310_DEV_NAME_PREFIX ## B
+
 /*Common Addresses and offsets*/
 #define LA9310_EP_DMA_BUF_PHYS_ADDR	0xA0000000
 #define LA9310_EP_TOHOST_MSI_PHY_ADDR	0xB0000000

@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2021-2022 NXP
+ * Copyright 2021-2024 NXP
  *
  */
 #ifndef __LA93XX_IPC_IOCTL__
@@ -7,7 +7,7 @@
 
 #include <linux/ioctl.h>
 
-#define LA9310_IPC_DEVNAME_PREFIX  "la9310ipc"
+#define LA9310_IPC_DEVNAME_PREFIX  "-ipc"
 
 enum la93xx_ipc_flags {
 	LA93XX_IPC_NONBLOCK = 0,
