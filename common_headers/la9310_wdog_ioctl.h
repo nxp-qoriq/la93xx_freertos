@@ -27,6 +27,7 @@
 struct wdog {
 	uint32_t	wdogid; /**< modem watchdog id */
 	int32_t	dev_wdog_handle; /**< fd of modem watchdog device */
+	int32_t	wdog_eventfd; /**< eventfd for watchdog events */
 	int32_t	wdog_modem_status; /**< modem status */
 	int32_t	domain_nr; /**< pci domain assigned by linux */
 };

@@ -33,6 +33,7 @@ typedef struct modinfo {
 	uint32_t rev;
 	char board_name[64];
 	char name[64];
+	char pci_addr[64];
 	char fw_name[64];
 	modinfo_addrmap_t ccsr;
 	modinfo_addrmap_t tcml;
@@ -47,6 +48,10 @@ typedef struct modinfo {
 	modinfo_addrmap_t stdfw;
 	modinfo_addrmap_t pciwin;
 	modinfo_addrmap_t scratchbuf;
+	int dac_mask;
+	int adc_mask;
+	int adc_rate_mask;
+	int dac_rate_mask;
 } modinfo_t;
 
 #define IOCTL_LA93XX_MODINFO_GET                _IOW(LA9310_MODINFO_MAGIC, 1, modinfo_t *)
