@@ -15,15 +15,7 @@
 #include "la9310_dcs.h"
 #include <la9310_dcs_api.h>
 
-
-    /**
- * Get the uint32_t value for a specified bit set.
- *
- * @param nr
- *   The bit number in range of 0 to 31.
- */
-#define RTE_BIT32(nr) (UINT32_C(1) << (nr))
-
+#define CHECK_BIT(var,pos) ((var) & (1<<(pos)))
 
 BaseType_t xLa9310AdcDacPowerUp( LA9310XcvrDCS_t dcs )
 {
@@ -603,15 +595,15 @@ void vDcsInit( int adc_mask, int adc_freq_mask, int dac_mask, int dac_freq_mask)
     for(dcs = XCVR_TRX_RX1_ADC; dcs <= XCVR_RO2_ADC; dcs++ )
     {
 
-        if ((RTE_BIT32((dcs -1)) & adc_mask) == 0) {
+        if (CHECK_BIT(adc_mask, (dcs -1)) == 0) {
                 /* keep it power down */
                 xLa9310AdcDacPowerDown(dcs);
                 continue;
         }
 
-        if ((RTE_BIT32((dcs -1)) & adc_freq_mask) == 0)
+        if (CHECK_BIT(adc_freq_mask, (dcs -1)) == Half_Freq)
                 Freq = Half_Freq;
-	else
+        else
                 Freq = Full_Freq;
 
         /* Configure the ADC clock */
@@ -630,10 +622,10 @@ void vDcsInit( int adc_mask, int adc_freq_mask, int dac_mask, int dac_freq_mask)
 
     /* Init DAC */
     if (dac_mask & 0x1) {
-	if (dac_freq_mask == 0x1)
-		Freq = Half_Freq;
-	else
-		Freq = Full_Freq;
+		if (dac_freq_mask == Half_Freq)
+			Freq = Half_Freq;
+		else
+			Freq = Full_Freq;
 
         /* Configure the DAC clock */
         xLa9310ConfigAdcDacClock( XCVR_TRX_TX_DAC, Freq );

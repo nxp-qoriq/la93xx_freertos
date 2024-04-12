@@ -16,8 +16,8 @@ typedef enum LA9310cvrDCS{
 }LA9310XcvrDCS_t;
 
 typedef enum DCSFreq {
-	Full_Freq,
-	Half_Freq,
+	Full_Freq, /* 122.88 MHz */
+	Half_Freq, /* 61.44MHz  */
 }DCSFreq_t;
 
 /* Use LA9310_DCS_BITMASK macro to generate
