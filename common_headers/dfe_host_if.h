@@ -12,8 +12,9 @@
 #define BBDEV_IPC_M2H_QUEUE     1
 
 enum dfe_host_to_modem_msg_type {
-	/* Debug operations */
+	/* IPC operations */
 	DFE_IPC_RESET = 0,
+	DFE_IPC_HOST_CONNECTED,
 	/* DFE App specific */
 	DFE_TDD_START,
 	DFE_TDD_STOP,
@@ -33,6 +34,12 @@ enum dfe_host_to_modem_msg_type {
 	DFE_VSPA_DMA_BENCH,
 	DFE_VSPA_PROD_HOST_BYPASS,
 	DFE_TDD_CFG_PATTERN_NEW,
+	DFE_TDD_SWITCH_TX,
+	DFE_TDD_SWITCH_RX,
+	/* cell search */
+	DFE_CELL_SEARCH_START,
+	DFE_CELL_SEARCH_STOP,
+	DFE_CELL_ATTACH,
 	DFE_H2M_MAX_OPS,
 };
 
@@ -44,6 +51,7 @@ enum dfe_modem_to_host_msg_type {
 	DFE_VSPA_ERROR,
 	DFE_CM4_ERROR,
 	/* DFE App specific */
+	DFE_TTI_MESSAGE,
 	DFE_M2H_MAX_OPS,
 };
 
