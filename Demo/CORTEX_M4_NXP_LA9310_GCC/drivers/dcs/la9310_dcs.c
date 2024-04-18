@@ -15,7 +15,7 @@
 #include "la9310_dcs.h"
 #include <la9310_dcs_api.h>
 
-#define CHECK_BIT(var,pos) ((var) & (1<<(pos)))
+#define CHECK_BIT(var,pos) (((var) & (1<<(pos)))>>(pos))
 
 BaseType_t xLa9310AdcDacPowerUp( LA9310XcvrDCS_t dcs )
 {
@@ -601,6 +601,7 @@ void vDcsInit( int adc_mask, int adc_freq_mask, int dac_mask, int dac_freq_mask)
                 continue;
         }
 
+	PRINTF("CHECK_BIT(adc_freq_mask, (dcs -1) = %d\r\n", CHECK_BIT(adc_freq_mask, (dcs -1)));
         if (CHECK_BIT(adc_freq_mask, (dcs -1)) == Half_Freq)
                 Freq = Half_Freq;
         else
