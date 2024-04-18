@@ -24,5 +24,5 @@ typedef struct {
 } rf_ctrl_s;
 
 void switch_rf(uint32_t mode);
-
+extern volatile rf_ctrl_s rf_ctrl;
 #endif
