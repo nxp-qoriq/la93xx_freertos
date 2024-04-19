@@ -10,6 +10,7 @@
 #include "phytimer.h"
 
 #include "rfnm_rf_ctrl.h"
+#include "la9310_dcs.h"
 
 volatile rf_ctrl_s rf_ctrl __attribute__((section(".rfctrl")));
 
@@ -22,11 +23,17 @@ static inline uint32_t uGetPhyTimerTimestamp(void)
 void switch_rf(uint32_t mode)
 {
 	uint32_t ts = uGetPhyTimerTimestamp();
+	uint32_t ulClkCtrlRegVal = IN_32( ( uint32_t * ) ( ADC_DAC_CLKCTRL ) );
+	uint32_t half_duplex = (ulClkCtrlRegVal & TX_Half_Freq_SET) >> 16;
 
 	rf_ctrl.mode = mode;
 	rf_ctrl.issued_phytimer_ts = ts + PHYTIMER_500_US_61p44;
 	rf_ctrl.target_phytimer_ts = ts + PHYTIMER_500_US_61p44 * 2;
-	rf_ctrl.tti_period_ts = PHYTIMER_500_US_61p44 * 2;
+
+	if (half_duplex)
+		rf_ctrl.tti_period_ts = PHYTIMER_500_US_61p44;
+	else
+		rf_ctrl.tti_period_ts = PHYTIMER_500_US_61p44 * 2;
 
 #ifndef RFNM_CHECK_ALIGNMENT
 
