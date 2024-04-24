@@ -355,7 +355,7 @@ int iInitHandler ( void )
 
 #ifndef LA9310_DFE_APP
     /* Let PhyTimer control RFCTL[] GPIOs  */
-    iGpioInitRFIC();
+    //iGpioInitRFIC();
 #endif
     vEnableExceptions();
 
