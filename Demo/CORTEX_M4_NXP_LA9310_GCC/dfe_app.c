@@ -309,21 +309,23 @@ static void prvTimerCb(TimerHandle_t timer)
 
 void vPhyTimerTickConfig()
 {
+	uint32_t debug_ts = 0;
 	NVIC_SetPriority( IRQ_PPS_OUT, 1 );
 	NVIC_EnableIRQ( IRQ_PPS_OUT );
 
 	/* figure out if there's any frame trigger signal */
 	ulLastPpsInTimestamp = 0;
-	NVIC_SetPriority( IRQ_PPS_IN, 1 );
+	NVIC_SetPriority( IRQ_PPS_IN, 2 );
 	NVIC_EnableIRQ( IRQ_PPS_IN );
 
-	/* wait 100*1 ms for frame trigger to happen */
-	uint32_t retries = 100;
+	/* wait 1200*1ms for frame trigger to happen */
+	uint32_t retries = 1100;
 	while( (--retries) && (ulLastPpsInTimestamp == 0)) {
 		/* wait 1ms betwen retries*/
-		vTaskDelay(1);
+		vPhyTimerDelay(0xF000); /* 1000uS (1ms) */
 	};
 
+	debug_ts = uGetPhyTimerTimestamp();
 	/* if frame trigger is present, use it */
 	if (ulLastPpsInTimestamp) {
 		ulNextTick = ulLastPpsInTimestamp;
@@ -338,6 +340,12 @@ void vPhyTimerTickConfig()
 			PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
 			ePhyTimerComparatorOutToggle,
 			ulNextTick );
+	PRINTF("ulLastPpsInTimestamp = %#x\r\n" \
+	       "                 now = %#x\r\n" \
+	       "          ulNextTick = %#x\r\n\r\n",
+	       ulLastPpsInTimestamp,
+	       debug_ts,
+	       ulNextTick);
 }
 
 void vPhyTimerPPSINHandler()
