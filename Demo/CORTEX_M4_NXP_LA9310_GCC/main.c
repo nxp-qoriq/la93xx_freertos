@@ -191,7 +191,7 @@ static void prvInitLa9310Info( struct la9310_info * pLa9310Info )
  * La9310 to indicate Host that it can proceed with Initialization
  * (LA9310_HOST_START_DRIVER_INIT).
  *
- * So Do all the initialization that you want in ratller which your host peer
+ * So Do all the initialization which your host peer
  * code needs for initialization. If your host code wants some values
  * initialized by la9310 for it's initialization, then add call your init
  * function here.
