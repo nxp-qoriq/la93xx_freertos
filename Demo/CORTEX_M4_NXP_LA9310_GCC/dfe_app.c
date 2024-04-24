@@ -185,11 +185,11 @@ void vPhyTimerWaitComparator(uint32_t target)
 }
 
 /* DFE App TDD Tx/Rx switch */
-inline void switch_txrx(uint32_t mode, uint32_t target_ts)
+inline void switch_txrx(uint32_t mode, uint32_t target_ts, uint32_t stop_tti)
 {
 	rf_ctrl.mode = mode;
 	rf_ctrl.target_phytimer_ts = target_ts - TDD_SWITCH_DELAY;
-	rf_ctrl.tti_period_ts = 0;
+	rf_ctrl.tti_period_ts = stop_tti;
 
 	vPhyTimerComparatorConfig( PHY_TIMER_COMP_RFCTL_5,
 							   PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
@@ -329,17 +329,20 @@ void vPhyTimerTickConfig()
 	/* if frame trigger is present, use it */
 	if (ulLastPpsInTimestamp) {
 		ulNextTick = ulLastPpsInTimestamp;
-		ulNextTick += slot_duration[scs] * max_slots_per_sfn[scs];
-		ulNextTick -= tick_interval[scs];
 	} else {
 		ulNextTick = ulPhyTimerCapture( PHY_TIMER_COMP_PPS_OUT );
-		ulNextTick += tick_interval[scs];
 	}
+
+	ulNextTick += (slot_duration[scs] * max_slots_per_sfn[scs]);
+	ulNextTick -= tick_interval[scs];
 
 	vPhyTimerComparatorConfig( PHY_TIMER_COMP_PPS_OUT,
 			PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
 			ePhyTimerComparatorOutToggle,
 			ulNextTick );
+
+	tti_trigger(ulNextTick, tick_interval[scs]);
+
 	PRINTF("ulLastPpsInTimestamp = %#x\r\n" \
 	       "                 now = %#x\r\n" \
 	       "          ulNextTick = %#x\r\n\r\n",
@@ -696,7 +699,7 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 		vPhyTimerComparatorDisable( PHY_TIMER_COMP_PPS_OUT );
 
 		/* stop RF Tx if on */
-		switch_txrx(0xBBBBBBBB, ulNextTick);
+		switch_txrx(0xBBBBBBBB, ulNextTick, 1 /* stop tti*/);
 
 		/* trace the stop event */
 		vTraceEventRecord(TRACE_TICK, 0xDEADDEAD, ulNextTick);
@@ -738,7 +741,7 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 										PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
 										ePhyTimerComparatorOut1,
 										rx_allowed_on );
-			switch_txrx(0xBBBBBBBB, rx_allowed_on);
+			switch_txrx(0xBBBBBBBB, rx_allowed_on, 0);
 			vTraceEventRecord(TRACE_AXIQ_RX, 0x502, rx_allowed_on);
 			rx_allowed_on_set = 1;
 		}
@@ -759,7 +762,7 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 										PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
 										ePhyTimerComparatorOut1,
 										tx_allowed_on );
-			switch_txrx(0xAAAAAAAA, tx_allowed_on - TDD_SWITCH_TX_ADV);
+			switch_txrx(0xAAAAAAAA, tx_allowed_on - TDD_SWITCH_TX_ADV, 0);
 			vTraceEventRecord(TRACE_AXIQ_TX, 0x602, tx_allowed_on);
 			tx_allowed_on_set = 1;
 		}
@@ -823,7 +826,7 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 									ePhyTimerComparatorOut0,
 									rx_allowed_off );
 			/* do nothing to turn off RF Rx */
-			//switch_txrx(0xBBBBBBBB, rx_allowed_off);
+			//switch_txrx(0xBBBBBBBB, rx_allowed_off, 0);
 			vTraceEventRecord(TRACE_AXIQ_RX, 0x501, rx_allowed_off);
 			rx_allowed_off_set = 0;
 		}
@@ -841,7 +844,7 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 									ePhyTimerComparatorOut0,
 									tx_allowed_off );
 			/* turn Rx on to stop the RF Tx */
-			switch_txrx(0xBBBBBBBB, tx_allowed_off - TDD_SWITCH_DELAY);
+			switch_txrx(0xBBBBBBBB, tx_allowed_off - TDD_SWITCH_DELAY, 0);
 			vTraceEventRecord(TRACE_AXIQ_TX, 0x601, tx_allowed_off);
 			tx_allowed_off_set = 0;
 		}

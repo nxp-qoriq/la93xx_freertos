@@ -65,3 +65,27 @@ vPhyTimerComparatorConfig( PHY_TIMER_COMP_RFCTL_5,
 			rf_ctrl.issued_phytimer_ts,
 			rf_ctrl.target_phytimer_ts, &rf_ctrl);
 }
+
+void tti_trigger(uint32_t target_ts, uint32_t period)
+{
+	rf_ctrl.mode = 0;
+	rf_ctrl.target_phytimer_ts = target_ts;
+	rf_ctrl.tti_period_ts = period;
+
+	vPhyTimerComparatorConfig( PHY_TIMER_COMP_RFCTL_5,
+					PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+					ePhyTimerComparatorOutToggle,
+					(rf_ctrl.issued_phytimer_ts = (uGetPhyTimerTimestamp() + 50)));
+}
+
+void tti_stop()
+{
+	rf_ctrl.mode = 0;
+	rf_ctrl.target_phytimer_ts = 0;
+	rf_ctrl.tti_period_ts = 1;
+
+	vPhyTimerComparatorConfig( PHY_TIMER_COMP_RFCTL_5,
+					PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+					ePhyTimerComparatorOutToggle,
+					(rf_ctrl.issued_phytimer_ts = (uGetPhyTimerTimestamp() + 50)));
+}

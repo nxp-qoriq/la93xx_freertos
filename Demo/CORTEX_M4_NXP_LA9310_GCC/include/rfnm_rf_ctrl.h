@@ -24,5 +24,8 @@ typedef struct {
 } rf_ctrl_s;
 
 void switch_rf(uint32_t mode);
+void tti_trigger(uint32_t target_ts, uint32_t period);
+void tti_stop();
+
 extern volatile rf_ctrl_s rf_ctrl;
 #endif

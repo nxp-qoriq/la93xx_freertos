@@ -29,6 +29,7 @@
 #include "dfe_vspa_mbox.h"
 #include "dfe_app.h"
 #include "dfe_host_if.h"
+#include "rfnm_rf_ctrl.h"
 
 uint32_t ulEdmaDemoInfo = 0xaa55aa55;
 extern struct la9310_info * pLa9310Info;
@@ -58,6 +59,8 @@ enum eLa9310DfeTestCmdID
 	TEST_CONFIG_QEC = 15,
 	TEST_RX_TO_TX = 16,
 	TEST_TX_TO_RX = 17,
+	TEST_TTI_TRIGGER = 18,
+	TEST_TTI_STOP = 19,
 	MAX_TEST_CMDS
 };
 
@@ -80,7 +83,9 @@ static const char cCmdDescriptinArr[ MAX_TEST_CMDS ][ MAX_CMD_DESCRIPTION_SIZE ]
     " To config Tx/Rx buffers (dfe 14 <rx_addr> <tx_addr> <sym_size/128> <rx_sym_num>, tx_sym_num>)",
     " To config Tx/Rx QEC (dfe 15 <tx/rx> <pt>\r\n\tdfe 15 <tx/rx> <corr> <index> <value>)",
     " Switch Rx->Tx (dfe 16)",
-    " Switch Tx->Rx (dfe 17)"
+    " Switch Tx->Rx (dfe 17)",
+    " TTI trigger (dfe 18)",
+    " TTI stop (dfe 19)"
 };
 
 static portBASE_TYPE prvDFETest( char * pcWriteBuffer,
@@ -308,6 +313,13 @@ static portBASE_TYPE prvDFETest( char * pcWriteBuffer,
 			break;
 		case TEST_TX_TO_RX:
 			switch_rf(0xBBBBBBBB);
+			break;
+		case TEST_TTI_TRIGGER:
+			tti_trigger(ulPhyTimerCapture( PHY_TIMER_COMPARATOR_COUNT - 1 ) + 10000, 0x7800);
+			break;
+		case TEST_TTI_STOP:
+			PRINTF("tti stop\r\n");
+			tti_stop();
 			break;
 		default:
 
