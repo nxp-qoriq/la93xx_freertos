@@ -68,8 +68,12 @@ enum eLa9310TestCmdID
 #ifdef TURN_ON_STANDALONE_MODE
     TEST_CRC=19,
 #endif
+#ifdef RFNM
     TEST_RX_TO_TX = 20,
     TEST_TX_TO_RX = 21,
+    TEST_TTI_START = 22,
+    TEST_TTI_STOP = 23,
+#endif
     MAX_TEST_CMDS
 };
 
@@ -85,6 +89,11 @@ enum eLa9310TestCmdID
         RFIC_IQ_DUMP,
         RFIC_GET_VALUES
     };
+#endif
+
+#ifdef RFNM
+extern void vTickMachineStart(uint32_t period);
+extern void vTickMachineStop();
 #endif
 
 static const char cCmdDescriptinArr[ MAX_TEST_CMDS ][ MAX_CMD_DESCRIPTION_SIZE ] =
@@ -115,8 +124,12 @@ static const char cCmdDescriptinArr[ MAX_TEST_CMDS ][ MAX_CMD_DESCRIPTION_SIZE ]
     " To verify vspa table (test 18)",
     " To verify CRC of images (test 19)",
 #endif
+#ifdef RFNM
     " Switch Rx->Tx (test 20)",
-    " Switch Tx->Rx (test 21)"
+    " Switch Tx->Rx (test 21)",
+    " TTI start (test 22)",
+    " TTI stop (test 23)"
+#endif
 };
 
 
@@ -432,12 +445,20 @@ static portBASE_TYPE prvNLMTest( char * pcWriteBuffer,
 			vLa9310VerifyCRC();
 			break;
 		#endif //TURN_ON_STANDALONE_MODE
+		#ifdef RFNM
 		case TEST_RX_TO_TX:
 			switch_rf(0xAAAAAAAA);
 			break;
 		case TEST_TX_TO_RX:
 			switch_rf(0xBBBBBBBB);
 			break;
+		case TEST_TTI_START:
+			vTickMachineStart(0xF000);
+			break;
+		case TEST_TTI_STOP:
+			vTickMachineStop();
+			break;
+		#endif
 		default:
 
 			for( ulCmd = 0; ulCmd < MAX_TEST_CMDS; ulCmd++ )

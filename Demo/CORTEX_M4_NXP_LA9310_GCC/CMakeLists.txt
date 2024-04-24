@@ -179,9 +179,16 @@ SET(LA9310_SOURCES
     "${ProjDirPath}/utils/delay.c"
   )
 endif()
+
+SET(LA9310_SOURCES ${LA9310_SOURCES}
+    "${ProjDirPath}/drivers/dcs/la9310_dcs.c"
+   )
+
+if(BOARD_RFNM)
     SET(LA9310_SOURCES ${LA9310_SOURCES}
-    	"${ProjDirPath}/drivers/dcs/la9310_dcs.c"
-      )
+         "${ProjDirPath}/tti_gpio12_test.c"
+       )
+endif()
 
 if(LA9310_TURN_ON_COMMAND_LINE)
     SET(LA9310_SOURCES ${LA9310_SOURCES}

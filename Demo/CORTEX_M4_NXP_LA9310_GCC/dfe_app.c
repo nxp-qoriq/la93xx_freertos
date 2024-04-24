@@ -326,6 +326,7 @@ void vPhyTimerTickConfig()
 	};
 
 	debug_ts = uGetPhyTimerTimestamp();
+
 	/* if frame trigger is present, use it */
 	if (ulLastPpsInTimestamp) {
 		ulNextTick = ulLastPpsInTimestamp;
