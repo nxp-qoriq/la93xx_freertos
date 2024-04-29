@@ -14,7 +14,8 @@
 enum dfe_host_to_modem_msg_type {
 	/* IPC operations */
 	DFE_IPC_RESET = 0,
-	DFE_IPC_HOST_CONNECTED,
+	DFE_IPC_HOST_CONNECT,
+	DFE_IPC_HOST_DISCONNECT,
 	/* DFE App specific */
 	DFE_TDD_START,
 	DFE_TDD_STOP,
