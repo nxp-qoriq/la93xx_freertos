@@ -1371,8 +1371,11 @@ static void prvProcessRx(struct dfe_msg *msg)
 		ipc_host_connected = 0;
 		prvDoIPCReset();
 		break;
-	case DFE_IPC_HOST_CONNECTED:
+	case DFE_IPC_HOST_CONNECT:
 		ipc_host_connected = 1;
+		break;
+	case DFE_IPC_HOST_DISCONNECT:
+		ipc_host_connected = 0;
 		break;
 	case DFE_TDD_START:
 		PRINTF("ipc_host_connected = %d\r\n", ipc_host_connected);
