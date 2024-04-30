@@ -150,6 +150,10 @@ void vPhyTimerDisable();
  */
 uint32_t ulPhyTimerCapture( uint8_t ucComparator );
 
+/* routine for returning the current timer value */
+#define uGetPhyTimerTimestamp() \
+	ulPhyTimerCapture( PHY_TIMER_COMPARATOR_COUNT - 1 )
+
 /**
  *  @Function	    vPhyTimerComparatorDisable
  *

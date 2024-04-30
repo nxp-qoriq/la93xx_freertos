@@ -129,12 +129,6 @@ const char *event_to_string(uint32_t event)
 static void prvTick( void *pvParameters, long unsigned int param1);
 static uint32_t prvSendVspaCmd(struct dfe_mbox *mbox_h2v, uint32_t rsp_type, int32_t vspa_timeout_ms);
 
-/* routine for returning the current timer value */
-inline uint32_t uGetPhyTimerTimestamp(void)
-{
-	return ulPhyTimerCapture( PHY_TIMER_COMPARATOR_COUNT - 1 );
-}
-
 /* routine for implementing delay given as timer ticks */
 void vPhyTimerDelay(uint32_t sleep_phy_timer_ticks)
 {
@@ -185,7 +179,7 @@ void vPhyTimerWaitComparator(uint32_t target)
 }
 
 /* DFE App TDD Tx/Rx switch */
-inline void switch_txrx(uint32_t mode, uint32_t target_ts, uint32_t stop_tti)
+static inline void switch_txrx(uint32_t mode, uint32_t target_ts, uint32_t stop_tti)
 {
 	rf_ctrl.mode = mode;
 	rf_ctrl.target_phytimer_ts = target_ts - TDD_SWITCH_DELAY;
