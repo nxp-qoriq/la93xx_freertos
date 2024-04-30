@@ -19,8 +19,8 @@ MEMORY
 {
   m_startup		(RX)  : ORIGIN = 0x1F800000, LENGTH = 0x00000100
   m_interrupts          (RX)  : ORIGIN = 0x1F800100, LENGTH = 0x00000240
-  m_text                (RX)  : ORIGIN = 0x1F800340, LENGTH = 0x0000F400
-  m_data                (RW)  : ORIGIN = 0x1F80F740, LENGTH = 0x00008000
+  m_text                (RX)  : ORIGIN = 0x1F800340, LENGTH = 0x00010800
+  m_data                (RW)  : ORIGIN = 0x1F810B40, LENGTH = 0x00008000
   m_dtcm		(RW)  : ORIGIN = 0x20000000, LENGTH = 0x0000F000
   br_data               (R)   : ORIGIN = 0x2000F000, LENGTH = 0x00001000
 }

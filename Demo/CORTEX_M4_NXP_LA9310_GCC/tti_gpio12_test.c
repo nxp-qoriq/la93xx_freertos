@@ -32,12 +32,6 @@ bool stop = pdTRUE;
 
 static void prvTick( void *pvParameters, long unsigned int param1);
 
-/* routine for returning the current timer value */
-inline uint32_t uGetPhyTimerTimestamp(void)
-{
-	return ulPhyTimerCapture( PHY_TIMER_COMPARATOR_COUNT - 1 );
-}
-
 void vPhyTimerTickConfig()
 {
 	uint32_t debug_ts = 0;

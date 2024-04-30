@@ -14,12 +14,6 @@
 
 volatile rf_ctrl_s rf_ctrl __attribute__((section(".rfctrl")));
 
-/* routine for returning the current timer value */
-static inline uint32_t uGetPhyTimerTimestamp(void)
-{
-	return ulPhyTimerCapture( PHY_TIMER_COMPARATOR_COUNT - 1 );
-}
-
 void switch_rf(uint32_t mode)
 {
 	uint32_t ts = uGetPhyTimerTimestamp();
