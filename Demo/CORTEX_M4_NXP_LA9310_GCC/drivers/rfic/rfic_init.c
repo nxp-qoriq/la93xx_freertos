@@ -122,6 +122,9 @@ BaseType_t iRficInit( struct la9310_info *pLa9310Info )
     pRficDev->iq_phys_addr = IN_32(&pHif->iq_phys_addr);
     pRficDev->iq_mem_addr = IN_32(&pHif->iq_mem_addr);
     pRficDev->iq_mem_size = IN_32(&pHif->iq_mem_size);
+    log_dbg("iq_phys_addr:0x%x, iq_mem_addr:0x%x, iq_mem_size:0x%x\n",
+		    pRficDev->iq_phys_addr, pRficDev->iq_mem_addr,
+		    pRficDev->iq_mem_size);
     /* Init RF GPIO */
     if( vRficInitGpio( pRficDev ))
     {
