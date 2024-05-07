@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2017-2022 NXP
+ * Copyright 2017-2024 NXP
  */
 
 #ifndef __LA9310_PCI_DEF_H__
@@ -88,8 +88,5 @@
 #define PCIE_RHOM_DBI_SIZE	(4*1024)
 #define PCIE_RHOM_HEADER_SIZE	(4*1024)
 #define BL_SRC_OFFSET		0
-
-/* PCIe outbound window base address for address allocator */
-#define PCI_OUTBOUND_WINDOW_BASE_ADDR	0xA0000000
 
 #endif /* __LA9310_PCI_DEF_H__ */
