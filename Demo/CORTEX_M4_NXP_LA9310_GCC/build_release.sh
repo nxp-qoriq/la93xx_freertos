@@ -10,18 +10,20 @@ log_level="info"
 build_variant="release"
 features=""
 build_flags=""
+file_name="la9310.bin"
 
 show_help()
 {
-       echo "Usage: ./$1 -t <target_model> -l <log_level> -b <build_variant> -m <boot_mode> -f <features>"
+       echo "Usage: ./$1 -t <target_model> -l <log_level> -b <build_variant> -m <boot_mode> -f <features> -n <file_name>"
        echo "       target_model = {nlm, rfnm, rfnm_nxp, rfnm_dfe, nmm}"
        echo "       log_level = {err, info, dbg, isr, all}"
        echo "       build_variant = {debug, release}"
        echo "       boot_mode = {i2c, pcie}"
        echo "       features = { NA }"
+       echo "       file_name = { la9310.bin, la9310_release.bin, etc}"
 }
 
-while getopts "ht:l:b:m:c:f:" opt; do
+while getopts "ht:l:b:m:c:f:n:" opt; do
        case "$opt" in
                h)  show_help
                    exit 0
@@ -35,6 +37,8 @@ while getopts "ht:l:b:m:c:f:" opt; do
                m)  boot_mode=$OPTARG
                        ;;
                f)  features+=":$OPTARG"
+                       ;;
+               n)  file_name="$OPTARG"
                        ;;
        esac
 done
@@ -86,6 +90,9 @@ if [ "$target_model" == "rfnm_dfe" ];then
 	build_flags=" -DRFNM_DFE=ON $build_flags"
 else
 	build_flags=" -DRFNM_DFE=OFF $build_flags"
+fi
+if [ -n "$file_name" ];then
+	build_flags=" -DFILE_NAME=$file_name $build_flags"
 fi
 
 echo "#######################################################################################################################"
