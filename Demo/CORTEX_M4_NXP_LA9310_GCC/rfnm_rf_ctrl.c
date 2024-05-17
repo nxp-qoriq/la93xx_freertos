@@ -17,14 +17,14 @@ volatile rf_ctrl_s rf_ctrl __attribute__((section(".rfctrl")));
 void switch_rf(uint32_t mode)
 {
 	uint32_t ts = uGetPhyTimerTimestamp();
-	uint32_t ulClkCtrlRegVal = IN_32( ( uint32_t * ) ( ADC_DAC_CLKCTRL ) );
-	uint32_t half_duplex = (ulClkCtrlRegVal & TX_Half_Freq_SET) >> 16;
+	uint32_t ulClkCtrlRegVal = IN_32( ( uint32_t * ) ( ADC_DAC_CLKCFG ) );
+	uint32_t half_rate = (ulClkCtrlRegVal & TX_Half_Freq_SET) >> 16 ;
 
 	rf_ctrl.mode = mode;
 	rf_ctrl.issued_phytimer_ts = ts + PHYTIMER_500_US_61p44;
 	rf_ctrl.target_phytimer_ts = ts + PHYTIMER_500_US_61p44 * 2;
 
-	if (half_duplex)
+	if (half_rate)
 		rf_ctrl.tti_period_ts = PHYTIMER_500_US_61p44 - GPT3_CORRECTION_FACTOR_500US;
 	else
 		rf_ctrl.tti_period_ts = (PHYTIMER_500_US_61p44 * 2) - GPT3_CORRECTION_FACTOR_500US;
