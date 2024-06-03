@@ -147,6 +147,62 @@ const char *event_to_string(uint32_t event)
 static void prvTick( void *pvParameters, long unsigned int param1);
 static uint32_t prvSendVspaCmd(struct dfe_mbox *mbox_h2v, uint32_t rsp_type, int32_t vspa_timeout_ms);
 
+#define PPSSKIPCOUNT (2000 - 1) // Once every second
+uint32_t ppsOutSkipCount = 0; // 2000 * 500mS = 1Sec
+
+uint32_t readPMUX(int index)
+{
+  struct ccsr_pmux * pxPmuxCR = ( void * ) ( PMUXCR_BASE_ADDR );
+  uint32_t ulPmux;
+
+  if (0 == index)
+    ulPmux = IN_32( &pxPmuxCR->ulPmuxCR0 );
+  else
+    ulPmux = IN_32( &pxPmuxCR->ulPmuxCR1 );
+
+  return ulPmux;
+}
+
+uint32_t setPMUX(int pmux_index, int bit_index)
+{
+  struct ccsr_pmux * pxPmuxCR = ( void * ) ( PMUXCR_BASE_ADDR );
+  uint32_t ulPmux;
+
+  if (0 == pmux_index)
+    ulPmux = IN_32( &pxPmuxCR->ulPmuxCR0 );
+  else
+    ulPmux = IN_32( &pxPmuxCR->ulPmuxCR1 );
+
+  ulPmux |= (1 << bit_index);
+
+  if (0 == pmux_index)
+    OUT_32( &pxPmuxCR->ulPmuxCR0, ulPmux );
+  else
+    OUT_32( &pxPmuxCR->ulPmuxCR1, ulPmux );
+
+  return ulPmux;
+}
+
+uint32_t clearPMUX(int pmux_index, int bit_index)
+{
+  struct ccsr_pmux * pxPmuxCR = ( void * ) ( PMUXCR_BASE_ADDR );
+  uint32_t ulPmux;
+
+  if (0 == pmux_index)
+    ulPmux = IN_32( &pxPmuxCR->ulPmuxCR0 );
+  else
+    ulPmux = IN_32( &pxPmuxCR->ulPmuxCR1 );
+
+  ulPmux &= (0 << bit_index);
+
+  if (0 == pmux_index)
+    OUT_32( &pxPmuxCR->ulPmuxCR0, ulPmux );
+  else
+    OUT_32( &pxPmuxCR->ulPmuxCR1, ulPmux );
+
+  return ulPmux;
+}
+
 /* routine for implementing delay given as timer ticks */
 void vPhyTimerDelay(uint32_t sleep_phy_timer_ticks)
 {
@@ -726,7 +782,21 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 	uint32_t start_offset_ul = 0;
 	uint32_t stop_offset_ul = 0;
 
-	if ( bTddStop && (ulCurrentSlot == 0) ) {
+  if (ppsOutSkipCount < PPSSKIPCOUNT) {
+    if (0 == ppsOutSkipCount) {
+      // Set PMUXCR0 to GPIO
+      setPMUX(0, PMUXCR0_PPSOUT_PIN);
+    }
+    ppsOutSkipCount++;
+  } else {
+    // Set PMUXCR0 to PPS_OUT
+    ppsOutSkipCount = 0;
+    clearPMUX(0, PMUXCR0_PPSOUT_PIN);
+    //PRINTF("%d : PMUX %d  timer 0x%x\r\n",ppsOutSkipCount, readPMUX(0),uGetPhyTimerTimestamp());
+  }
+  //PRINTF("%d : PMUX %d \r\n",ppsOutSkipCount, readPMUX(0));
+
+  if ( bTddStop && (ulCurrentSlot == 0) ) {
 		/* disable tick and any other used comparator */
 		if (!bKeepTickAlive)
 			vPhyTimerComparatorDisable( PHY_TIMER_COMP_PPS_OUT );

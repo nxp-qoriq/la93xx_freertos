@@ -50,6 +50,7 @@ struct ccsr_pmux
 {
     uint32_t ulPmuxCR0; /* PMUXCR0 */
     uint32_t ulPmuxCR1; /* PMUXCR1 */
+#define PMUXCR0_PPSOUT_PIN  0x3
 #define PMUXCR0_UART_PIN    0x0
 };
 
