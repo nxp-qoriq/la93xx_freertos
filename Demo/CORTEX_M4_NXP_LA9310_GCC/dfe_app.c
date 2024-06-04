@@ -11,6 +11,7 @@
 #include "immap.h"
 #include "la9310_main.h"
 #include "la9310_irq.h"
+#include "la9310_pinmux.h"
 #include "core_cm4.h"
 #include "la9310_edmaAPI.h"
 #include "bbdev_ipc.h"
@@ -127,6 +128,15 @@ const uint32_t max_slots_per_sfn[SCS_MAX] = {
 	[SCS_kHz30]  = 20,
 };
 
+#ifdef LA9310_1SEC_PPS
+const uint32_t ppsSkipCount[SCS_MAX] = {
+	[SCS_kHz15]  = 1000,
+	[SCS_kHz30]  = 2000,
+};
+
+uint32_t ppsOutSkipCount = 0; // 2000 * 500mS = 1Sec
+#endif
+
 sTraceEntry app_logging[MAX_TS] = { 0 };
 uint32_t debug_ts[MAX_TS] = { 0 };
 bool debug = pdTRUE;
@@ -146,62 +156,6 @@ const char *event_to_string(uint32_t event)
 
 static void prvTick( void *pvParameters, long unsigned int param1);
 static uint32_t prvSendVspaCmd(struct dfe_mbox *mbox_h2v, uint32_t rsp_type, int32_t vspa_timeout_ms);
-
-#define PPSSKIPCOUNT (2000 - 1) // Once every second
-uint32_t ppsOutSkipCount = 0; // 2000 * 500mS = 1Sec
-
-uint32_t readPMUX(int index)
-{
-  struct ccsr_pmux * pxPmuxCR = ( void * ) ( PMUXCR_BASE_ADDR );
-  uint32_t ulPmux;
-
-  if (0 == index)
-    ulPmux = IN_32( &pxPmuxCR->ulPmuxCR0 );
-  else
-    ulPmux = IN_32( &pxPmuxCR->ulPmuxCR1 );
-
-  return ulPmux;
-}
-
-uint32_t setPMUX(int pmux_index, int bit_index)
-{
-  struct ccsr_pmux * pxPmuxCR = ( void * ) ( PMUXCR_BASE_ADDR );
-  uint32_t ulPmux;
-
-  if (0 == pmux_index)
-    ulPmux = IN_32( &pxPmuxCR->ulPmuxCR0 );
-  else
-    ulPmux = IN_32( &pxPmuxCR->ulPmuxCR1 );
-
-  ulPmux |= (1 << bit_index);
-
-  if (0 == pmux_index)
-    OUT_32( &pxPmuxCR->ulPmuxCR0, ulPmux );
-  else
-    OUT_32( &pxPmuxCR->ulPmuxCR1, ulPmux );
-
-  return ulPmux;
-}
-
-uint32_t clearPMUX(int pmux_index, int bit_index)
-{
-  struct ccsr_pmux * pxPmuxCR = ( void * ) ( PMUXCR_BASE_ADDR );
-  uint32_t ulPmux;
-
-  if (0 == pmux_index)
-    ulPmux = IN_32( &pxPmuxCR->ulPmuxCR0 );
-  else
-    ulPmux = IN_32( &pxPmuxCR->ulPmuxCR1 );
-
-  ulPmux &= (0 << bit_index);
-
-  if (0 == pmux_index)
-    OUT_32( &pxPmuxCR->ulPmuxCR0, ulPmux );
-  else
-    OUT_32( &pxPmuxCR->ulPmuxCR1, ulPmux );
-
-  return ulPmux;
-}
 
 /* routine for implementing delay given as timer ticks */
 void vPhyTimerDelay(uint32_t sleep_phy_timer_ticks)
@@ -782,7 +736,8 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 	uint32_t start_offset_ul = 0;
 	uint32_t stop_offset_ul = 0;
 
-  if (ppsOutSkipCount < PPSSKIPCOUNT) {
+#ifdef LA9310_1SEC_PPS
+  if (ppsOutSkipCount < ppsSkipCount[scs]) {
     if (0 == ppsOutSkipCount) {
       // Set PMUXCR0 to GPIO
       setPMUX(0, PMUXCR0_PPSOUT_PIN);
@@ -795,6 +750,7 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
     //PRINTF("%d : PMUX %d  timer 0x%x\r\n",ppsOutSkipCount, readPMUX(0),uGetPhyTimerTimestamp());
   }
   //PRINTF("%d : PMUX %d \r\n",ppsOutSkipCount, readPMUX(0));
+#endif
 
   if ( bTddStop && (ulCurrentSlot == 0) ) {
 		/* disable tick and any other used comparator */

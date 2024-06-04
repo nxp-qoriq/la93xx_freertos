@@ -8,6 +8,63 @@
 #include "io.h"
 #include "la9310_pinmux.h"
 
+
+/* return the PMUX register value */
+uint32_t readPMUX(int index)
+{
+  struct ccsr_pmux * pxPmuxCR = ( void * ) ( PMUXCR_BASE_ADDR );
+  uint32_t ulPmux;
+
+  if (0 == index)
+    ulPmux = IN_32( &pxPmuxCR->ulPmuxCR0 );
+  else
+    ulPmux = IN_32( &pxPmuxCR->ulPmuxCR1 );
+
+  return ulPmux;
+}
+
+/* Set PMUX for the pmux_index and bit_index */
+uint32_t setPMUX(int pmux_index, int bit_index)
+{
+  struct ccsr_pmux * pxPmuxCR = ( void * ) ( PMUXCR_BASE_ADDR );
+  uint32_t ulPmux;
+
+  if (0 == pmux_index)
+    ulPmux = IN_32( &pxPmuxCR->ulPmuxCR0 );
+  else
+    ulPmux = IN_32( &pxPmuxCR->ulPmuxCR1 );
+
+  ulPmux |= (1 << bit_index);
+
+  if (0 == pmux_index)
+    OUT_32( &pxPmuxCR->ulPmuxCR0, ulPmux );
+  else
+    OUT_32( &pxPmuxCR->ulPmuxCR1, ulPmux );
+
+  return ulPmux;
+}
+
+/* Clear PMUX for the pmux_index and bit_index */
+uint32_t clearPMUX(int pmux_index, int bit_index)
+{
+  struct ccsr_pmux * pxPmuxCR = ( void * ) ( PMUXCR_BASE_ADDR );
+  uint32_t ulPmux;
+
+  if (0 == pmux_index)
+    ulPmux = IN_32( &pxPmuxCR->ulPmuxCR0 );
+  else
+    ulPmux = IN_32( &pxPmuxCR->ulPmuxCR1 );
+
+  ulPmux &= (0 << bit_index);
+
+  if (0 == pmux_index)
+    OUT_32( &pxPmuxCR->ulPmuxCR0, ulPmux );
+  else
+    OUT_32( &pxPmuxCR->ulPmuxCR1, ulPmux );
+
+  return ulPmux;
+}
+
 /* Set multiple GPIO pin mux setting */
 void vGpioSetPinMux( uint32_t pin_mask,
                      uint8_t pin_mode )
