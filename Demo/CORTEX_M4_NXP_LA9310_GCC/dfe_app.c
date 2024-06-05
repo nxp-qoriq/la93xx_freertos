@@ -564,7 +564,7 @@ static void prvVSPALoop(void *pvParameters)
 
 	while (1) {
 		/* Check for message */
-		ret = vDFEMbxReceive(&vspa_ctrl_msg, DFE_CTRL_MBOX_ID, 0);
+		ret = vDFEMbxReceive(&vspa_ctrl_msg, DFE_OPS_MBOX_ID, 0);
 		if (ret != 0)
 			continue;
 
@@ -718,9 +718,6 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 	uint32_t start_offset_ul = 0;
 	uint32_t stop_offset_ul = 0;
 
-	//vTraceEventRecord(TRACE_TICK, 0xFFFF0000 + bTddStop, ulNextTick);
-
-
 	if ( bTddStop && (ulCurrentSlot == 0) ) {
 		/* disable tick and any other used comparator */
 		if (!bKeepTickAlive)
@@ -728,6 +725,20 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 
 		/* stop RF Tx if on */
 		switch_txrx(0xBBBBBBBB, ulNextTick, !bKeepTickAlive /* stop tti*/);
+
+		/* stop Tx Allowed */
+		if (!bIsUplinkSlot) {
+			if (tx_allowed_off_set) {
+				vPhyTimerComparatorConfig( uTxAntennaComparator,
+											PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+											ePhyTimerComparatorOut0,
+											tx_allowed_off );
+				vTraceEventRecord(TRACE_AXIQ_TX, 0x601, tx_allowed_off);
+				tx_allowed_off_set = 0;
+			}
+
+			tx_allowed_on_set = 0;
+		}
 
 		/* trace the stop event */
 		if (!bKeepTickAlive)
@@ -1106,7 +1117,7 @@ void prvConfigTdd()
 
 	/* next incremnet will turn these into 0 */
 	ulCurrentSfn = 1024;
-	ulCurrentSlotInFrame = max_slots_per_sfn[scs] - 1;
+	ulCurrentSlotInFrame = max_slots_per_sfn[scs];
 
 	/* configure tick interval and setup PhyTimer */
 	vPhyTimerTickConfig();
