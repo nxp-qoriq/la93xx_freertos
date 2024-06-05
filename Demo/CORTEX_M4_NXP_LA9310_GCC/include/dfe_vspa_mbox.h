@@ -8,8 +8,7 @@
 #define __DFE_VSPA_MBOX_H__
 
 /* Mailboxes */
-#define DFE_OPS_MBOX_ID			0
-#define DFE_CTRL_MBOX_ID		1
+#define DFE_OPS_MBOX_ID			1
 
 /* Mailbox interface opcodes (DFE & debug operations) */
 #define DFE_OP_TEST_MBOX		0

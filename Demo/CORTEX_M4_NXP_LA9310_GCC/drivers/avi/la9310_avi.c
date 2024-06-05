@@ -16,6 +16,14 @@ struct avi_hndlr * pAviHndlr = NULL;
 struct la9310_evt_hdlr VspaEvtHdlr;
 void (* IntHndlr)( void ) = NULL;
 
+uint32_t uMailboxMonitorMask = VSPA_MBOX_MASK;
+
+void vVSPAMboxMonitorMaskSet(uint32_t mask)
+{
+    uMailboxMonitorMask = mask;
+    return;
+}
+
 void vVSPAMboxInit()
 {
     OUT_32( PHY_TIMER, 0x1 );
@@ -221,7 +229,7 @@ void AviHndleMboxInterrupt( struct avi_hndlr * AviHndlr )
      * to the respective Queue
      * */
 
-    if( IN_32( &pVspaRegs->vspa_status ) & VSPA_MBOX0_STATUS )
+    if( IN_32( &pVspaRegs->vspa_status ) & VSPA_MBOX0_STATUS & uMailboxMonitorMask)
     {
         log_dbg( "%s: Rcvd mbox0 from VSPA\n\r", __func__ );
         vspambox.msb = IN_32( &pVspaRegs->host_in_0_msb );
@@ -235,7 +243,7 @@ void AviHndleMboxInterrupt( struct avi_hndlr * AviHndlr )
 
         OUT_32( &pVspaRegs->vspa_status, VSPA_MBOX0_STATUS );
     }
-    else if( IN_32( &pVspaRegs->vspa_status ) & VSPA_MBOX1_STATUS )
+    else if( IN_32( &pVspaRegs->vspa_status ) & VSPA_MBOX1_STATUS & uMailboxMonitorMask)
     {
         log_dbg( "%s: Rcvd mbox1 from VSPA\n\r", __func__ );
         vspambox.msb = IN_32( &pVspaRegs->host_in_1_msb );
@@ -249,7 +257,7 @@ void AviHndleMboxInterrupt( struct avi_hndlr * AviHndlr )
 
         OUT_32( &pVspaRegs->vspa_status, VSPA_MBOX1_STATUS );
     }
-    else if( IN_32( &pVspaRegs->vspa_status ) & CM4_MBOX0_STATUS )
+    else if( IN_32( &pVspaRegs->vspa_status ) & CM4_MBOX0_STATUS & uMailboxMonitorMask)
     {
         log_dbg( "%s: Rcvd mbox0 ack\n\r", __func__ );
 
@@ -271,7 +279,7 @@ void AviHndleMboxInterrupt( struct avi_hndlr * AviHndlr )
 
         OUT_32( &pVspaRegs->vspa_status, CM4_MBOX0_STATUS );
     }
-    else if( IN_32( &pVspaRegs->vspa_status ) & CM4_MBOX1_STATUS )
+    else if( IN_32( &pVspaRegs->vspa_status ) & CM4_MBOX1_STATUS & uMailboxMonitorMask )
     {
         log_dbg( "%s: Rcvd mbox1 ack\n\r", __func__ );
 
@@ -290,10 +298,13 @@ void AviHndleMboxInterrupt( struct avi_hndlr * AviHndlr )
 
         OUT_32( &pVspaRegs->vspa_status, CM4_MBOX1_STATUS );
     }
-    else
+    else if ( uMailboxMonitorMask == VSPA_MBOX_MASK )
     {
         log_err( "ERR: Invalid VSPA status\n" );
     }
+
+    /* ack the non-monitored events as well to avoid flooding CM4 with VSPA IRQs */
+    OUT_32( &pVspaRegs->vspa_status, VSPA_MBOX_MASK );
 
     log_dbg( "%s: Out\n\r", __func__ );
 }

@@ -194,3 +194,4 @@ unsigned int iLa9310AviVspaHwVer( void );
 unsigned int iLa9310AviVspaSwVer( void );
 void iLa9310VspaInit( void );
 void iLa9310AviClose( void );
+void vVSPAMboxMonitorMaskSet( uint32_t );

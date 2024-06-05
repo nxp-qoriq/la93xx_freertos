@@ -42,6 +42,14 @@
 #define TDD_SWITCH_TX_ADV       0 /* 0uS - compensated by Host/M7 TDD logic */
 
 #define VSPA_SW_VER_PRODUCTION  0xDFEF0000
+
+#define CM4_DFE_SW_ID           0xDFE00000
+#define CM4_DFE_SW_REV          0x0  /* 8-bit  */
+#define CM4_DFE_SW_MAJOR        0x00 /* 16-bit */
+#define CM4_DFE_SW_MINOR        0x04 /* 16-bit */
+
+#define CM4_DFE_SW_VER          (CM4_DFE_SW_ID |  CM4_DFE_SW_REV << 24 | CM4_DFE_SW_MAJOR << 16 | CM4_DFE_SW_MINOR)
+
 bool_t bVspaProductionBinary = pdFALSE;
 
 QueueHandle_t xTimeQueue;
@@ -64,17 +72,28 @@ uint32_t rx_sym_nr = 14/2;
 uint32_t tx_sym_nr = 14/2;
 uint8_t  host_bypass_flag_tx_rx = 1;
 
+static uint32_t timestamp_to_start = 0;
+static bool bFddIsRunning = pdFALSE;
 static uint32_t ulLastPpsInTimestamp = 0;
 static uint32_t ulNextTick;
+/* SFN/slot keeping */
 static uint32_t ulCurrentSlot;
 static uint32_t ulCurrentSlotInFrame;
 static uint32_t ulCurrentSfn;
 static uint32_t ulTotalSlots;
-static int32_t iTimeAdvance;
+static int32_t iUplinkTimeAdvance = 0;
+static int32_t iTimeOffsetCorr = 0;
+/* Application internal counters*/
 uint32_t ulTotalTicks;
 uint32_t ulVspaMsgCnt;
 uint32_t ulVspaMsgTxCnt;
 uint32_t ulVspaMsgRxCnt;
+/* variable used for mainiting the system tick alive after TDD stop */
+static bool bKeepTickAlive = pdFALSE;
+static bool bTddResume = pdFALSE;
+static bool bTddStop = pdFALSE;
+static bool bTickConfigured = pdFALSE;
+static bool bApplyTimeOffsetCorrection = pdFALSE;
 
 enum ePhyTimerComparatorTrigger tx_allowed_last_state = ePhyTimerComparatorNoChange;
 enum ePhyTimerComparatorTrigger rx_allowed_last_state = ePhyTimerComparatorNoChange;
@@ -111,7 +130,6 @@ const uint32_t max_slots_per_sfn[SCS_MAX] = {
 sTraceEntry app_logging[MAX_TS] = { 0 };
 uint32_t debug_ts[MAX_TS] = { 0 };
 bool debug = pdTRUE;
-bool stop = pdFALSE;
 
 tSlot *slots = NULL;
 uint8_t scs = SCS_kHz30;
@@ -183,7 +201,7 @@ static inline void switch_txrx(uint32_t mode, uint32_t target_ts, uint32_t stop_
 {
 	rf_ctrl.mode = mode;
 	rf_ctrl.target_phytimer_ts = target_ts - TDD_SWITCH_DELAY;
-	rf_ctrl.tti_period_ts = stop_tti;
+	rf_ctrl.tti_period_ts = stop_tti; /* 0: do nothing, 1: stop, 2: period aligned to target_ts */
 
 	vPhyTimerComparatorConfig( PHY_TIMER_COMP_RFCTL_5,
 							   PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
@@ -344,6 +362,8 @@ void vPhyTimerTickConfig()
 	       ulLastPpsInTimestamp,
 	       debug_ts,
 	       ulNextTick);
+
+	bTickConfigured = pdTRUE;
 }
 
 void vPhyTimerPPSINHandler()
@@ -357,8 +377,23 @@ void vPhyTimerPPSOUTHandler()
 {
 	NVIC_ClearPendingIRQ( IRQ_PPS_OUT );
 
+	if (bFddIsRunning)
+	{
+		ulNextTick += tick_interval[scs] * max_slots_per_sfn[scs];
+		vPhyTimerComparatorConfig( PHY_TIMER_COMP_PPS_OUT,
+				PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+				ePhyTimerComparatorOutToggle,
+				ulNextTick );
+		return;
+	}
 	/* Update next tick's timestamp */
 	ulNextTick += tick_interval[scs];
+
+// 	/* check if TO needs to be applied */
+// 	if (bApplyTimeOffsetCorrection) {
+// 		ulNextTick += iTimeOffsetCorr;
+// 		bApplyTimeOffsetCorrection = pdFALSE;
+// 	}
 
 	/* log tick */
 	vTraceEventRecord(TRACE_TICK, 0xBBBBBBBB, ulNextTick);
@@ -537,7 +572,7 @@ static void prvVSPALoop(void *pvParameters)
 
 	while (1) {
 		/* Check for message */
-		ret = vDFEMbxReceive(&vspa_ctrl_msg, DFE_CTRL_MBOX_ID, 0);
+		ret = vDFEMbxReceive(&vspa_ctrl_msg, DFE_OPS_MBOX_ID, 0);
 		if (ret != 0)
 			continue;
 
@@ -638,6 +673,7 @@ uint32_t rx_allowed_off = 0;
 bool_t rx_allowed_on_set = 0;
 bool_t rx_allowed_off_set = 0;
 
+#if 0 /* future */
 enum ue_states {
 	UE_IDLE = 0,
 	UE_CELL_SEARCH,
@@ -679,6 +715,7 @@ void vCellSearchStop()
 }
 
 tSlot cell_search_dl_slot;
+#endif
 
 static void prvTick( void *pvParameters, long unsigned int param1 )
 {
@@ -689,16 +726,47 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 	uint32_t start_offset_ul = 0;
 	uint32_t stop_offset_ul = 0;
 
-	if ( stop && (ulCurrentSlot == 0) ) {
+	if ( bTddStop && (ulCurrentSlot == 0) ) {
 		/* disable tick and any other used comparator */
-		vPhyTimerComparatorDisable( PHY_TIMER_COMP_PPS_OUT );
+		if (!bKeepTickAlive)
+			vPhyTimerComparatorDisable( PHY_TIMER_COMP_PPS_OUT );
 
 		/* stop RF Tx if on */
-		switch_txrx(0xBBBBBBBB, ulNextTick, 1 /* stop tti*/);
+		switch_txrx(0xBBBBBBBB, ulNextTick, !bKeepTickAlive /* stop tti*/);
+
+		/* stop Tx Allowed */
+		if (!bIsUplinkSlot) {
+			if (tx_allowed_off_set) {
+				vPhyTimerComparatorConfig( uTxAntennaComparator,
+											PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+											ePhyTimerComparatorOut0,
+											tx_allowed_off );
+				vTraceEventRecord(TRACE_AXIQ_TX, 0x601, tx_allowed_off);
+				tx_allowed_off_set = 0;
+			}
+
+			tx_allowed_on_set = 0;
+		}
 
 		/* trace the stop event */
-		vTraceEventRecord(TRACE_TICK, 0xDEADDEAD, ulNextTick);
-		return;
+		if (!bKeepTickAlive)
+			vTraceEventRecord(TRACE_TICK, 0xDEADDEAD, ulNextTick);
+
+		if (!bKeepTickAlive)
+			return;
+	}
+
+	//vTraceEventRecord(TRACE_TICK, 0xFFFF0002, ulNextTick);
+	if (bTddResume && bKeepTickAlive) {
+		vTraceEventRecord(TRACE_TICK, 0xFFFF0003, ulCurrentSlotInFrame);
+		/* if tdd start command is issued and keep is alive, start pattern aligned to frame */
+		if (ulCurrentSlotInFrame != (max_slots_per_sfn[scs] - 1))
+			goto update_sfn_slot;
+
+		vTraceEventRecord(TRACE_TICK, 0x55555555, ulCurrentSfn);
+		vTraceEventRecord(TRACE_TICK, 0x55555555, ulCurrentSlotInFrame);
+
+		bTddResume = pdFALSE;
 	}
 
 	/* notify host about current slot/sfn */
@@ -707,6 +775,9 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 
 	/* log current tick */
 	vTraceEventRecord(TRACE_SLOT, ulCurrentSlot, ulTotalSlots);
+
+	if (bTddStop && bKeepTickAlive)
+		goto update_sfn_slot;
 
 	/* look into pre-computed slot array */
 	bIsDownlinkSlot = slots[ulCurrentSlot].is_dl;
@@ -717,15 +788,15 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 	if (bIsDownlinkSlot) {
 		vGetSymbolsStartStop(&slots[ulCurrentSlot], 1 /*is_dl*/, &start_offset_dl, &stop_offset_dl);
 		vTraceEventRecord(TRACE_SLOT_DL, start_offset_dl, stop_offset_dl);
-		rx_allowed_start = ulNextTick + iTimeAdvance + start_offset_dl;
-		rx_allowed_stop = ulNextTick + iTimeAdvance + stop_offset_dl;
+		rx_allowed_start = ulNextTick + start_offset_dl;
+		rx_allowed_stop = ulNextTick + stop_offset_dl;
 	}
 
 	if (bIsUplinkSlot) {
 		vGetSymbolsStartStop(&slots[ulCurrentSlot], 0 /*is_dl*/, &start_offset_ul, &stop_offset_ul);
 		vTraceEventRecord(TRACE_SLOT_UL, start_offset_ul, stop_offset_ul);
-		tx_allowed_start = ulNextTick - iTimeAdvance + start_offset_ul;
-		tx_allowed_stop = ulNextTick - iTimeAdvance + stop_offset_ul + AXIQ_TAIL_LENGTH;
+		tx_allowed_start = ulNextTick - iUplinkTimeAdvance + start_offset_ul;
+		tx_allowed_stop = ulNextTick - iUplinkTimeAdvance + stop_offset_ul + AXIQ_TAIL_LENGTH;
 	}
 
 	if (bIsDownlinkSlot) {
@@ -798,6 +869,8 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 		ulVspaMsgTxCnt++;
 	}
 
+update_sfn_slot:
+
 	/* update current slot */
 	ulCurrentSlot++;
 	ulCurrentSlot %= ulTotalSlots;
@@ -809,7 +882,12 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 	{
 		ulCurrentSfn++;
 		ulCurrentSfn %= MAX_SFNS;
+		
+		//bApplyTimeOffsetCorrection = pdTRUE;
 	}
+
+	if (bTddStop && bKeepTickAlive)
+		goto tick_end;
 
 	if (!bIsDownlinkSlot) {
 		if (rx_allowed_off_set) {
@@ -851,9 +929,10 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 	/* DEBUG: add stop condition after end of pattern */
 	if ( ulTotalTicks > ulTotalSlots )
 	if (ulTotalTicks && (ulCurrentSlot == 0))
-		stop = pdTRUE;
+		bTddStop = pdTRUE;
 #endif
 
+tick_end:
 	vTraceEventRecord(TRACE_TICK, 0xEEEEEEEE, ulNextTick);
 }
 
@@ -961,6 +1040,12 @@ void vSetupTddPattern(uint32_t cfg_scs)
 	vPrintTddPattern();
 }
 
+void vTddApplyTimeOffsetCorrection(int time_offset)
+{
+	PRINTF("TO = %d\r\n", time_offset);
+	iTimeOffsetCorr = time_offset;
+}
+
 static void prvTimeAgentTask(void *pvParameters)
 {
 	sTimeAgentMessage msg;
@@ -1025,6 +1110,10 @@ void prvConfigTdd()
 
 	vPrintTddPattern();
 
+	/* do not reset counters or sfn/slot if tick is kept alive */
+	if (bKeepTickAlive && !bTddStop && bTickConfigured)
+		goto config_end;
+
 	/* send VSPA config */
 	prvVSPAConfig(0/*tdd*/, NO_TIMEOUT);
 
@@ -1040,6 +1129,10 @@ void prvConfigTdd()
 
 	/* configure tick interval and setup PhyTimer */
 	vPhyTimerTickConfig();
+
+config_end:
+	bTddResume = pdTRUE;
+	return;
 }
 
 void vConfigFddStart()
@@ -1062,18 +1155,21 @@ void vConfigFddStop()
 
 void vSetTimeAdvance(int32_t iVal)
 {
-	iTimeAdvance = iVal;
+	iUplinkTimeAdvance = iVal;
 }
 
 int iTddStart(void)
 {
 	/* check if TDD is running */
-	if (!stop && ulTotalTicks) {
+	if (!bTddStop && ulTotalTicks) {
 		PRINTF("TDD operation already running!\r\n");
 		return DFE_OPERATION_RUNNING;
 	}
 
-	stop = pdFALSE;
+	//if (bTddStop && bKeepTickAlive)
+	//	bTddResume = pdTRUE;
+
+	bTddStop = pdFALSE;
 
 	prvConfigTdd();
 	return 0;
@@ -1081,7 +1177,7 @@ int iTddStart(void)
 
 void vTddStop(void)
 {
-	stop = pdTRUE;
+	bTddStop = pdTRUE;
 	vTaskDelay(1000);
 	PRINTF("ulLastPpsInTimestamp = %#x\r\n", ulLastPpsInTimestamp);
 	PRINTF("ulTotalTicks = %d\r\n", ulTotalTicks);
@@ -1096,6 +1192,9 @@ void vFddStartStop(uint32_t is_on)
 	uint32_t comparator_value;
 
 	is_on = !!is_on;
+	
+	bFddIsRunning = is_on;
+
 	PRINTF("Set TxAllowed(CH5), RxAllowed(CH2) to ");
 	if (is_on) {
 		comparator_value = ePhyTimerComparatorOut1;
@@ -1109,11 +1208,36 @@ void vFddStartStop(uint32_t is_on)
 		vConfigFddStop();
 	}
 
+	NVIC_SetPriority( IRQ_PPS_OUT, 1 );
+	NVIC_EnableIRQ( IRQ_PPS_OUT );
+
 	/* delay of 2 symbols */
 	vPhyTimerDelay( 2 * ofdm_short_sym_time[SCS_kHz30]);
 
-	vPhyTimerComparatorForce(uTxAntennaComparator, comparator_value);
-	vPhyTimerComparatorForce(uRxAntennaComparator, comparator_value);
+	if (is_on) {
+		timestamp_to_start = uGetPhyTimerTimestamp() + (slot_duration[scs] * max_slots_per_sfn[scs]);
+		ulNextTick = timestamp_to_start;
+	} else {
+		timestamp_to_start = ulNextTick + (slot_duration[scs] * max_slots_per_sfn[scs]);
+	}
+
+	vPhyTimerComparatorConfig( uTxAntennaComparator,
+									PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+									comparator_value,
+									timestamp_to_start );
+
+	vPhyTimerComparatorConfig( uRxAntennaComparator,
+									PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+									comparator_value,
+									timestamp_to_start );
+
+	if (is_on)
+		vPhyTimerComparatorConfig( PHY_TIMER_COMP_PPS_OUT,
+			PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+			ePhyTimerComparatorOutToggle,
+			timestamp_to_start );
+	else
+		vPhyTimerComparatorDisable( PHY_TIMER_COMP_PPS_OUT );
 }
 
 int iBenchmarkVspaTest(uint32_t size, uint32_t mode, uint32_t parallel_dma, uint32_t iterations, uint32_t *gbits, uint32_t *mbits)
@@ -1391,14 +1515,14 @@ static void prvProcessRx(struct dfe_msg *msg)
 		vFddStartStop(0);
 		break;
 	case DFE_CFG_SCS:
-		if (!stop && ulTotalTicks) {
+		if (!bTddStop && ulTotalTicks) {
 			ret = DFE_OPERATION_RUNNING;
 			break;
 		}
 		scs = (msg->payload[0] == 15) ? SCS_kHz15 : SCS_kHz30;
 		break;
 	case DFE_TDD_CFG_PATTERN_NEW:
-		if (!stop && ulTotalTicks) {
+		if (!bTddStop && ulTotalTicks) {
 			ret = DFE_OPERATION_RUNNING;
 			break;
 		}
@@ -1469,12 +1593,21 @@ static void prvProcessRx(struct dfe_msg *msg)
 		break;
 
 	case DFE_CELL_SEARCH_START:
-		vCellSearchStart(msg->payload[0]);
+		//vCellSearchStart(msg->payload[0]);
 		break;
 	case DFE_CELL_SEARCH_STOP:
-		vCellSearchStop();
+		//vCellSearchStop();
 		break;
 	case DFE_CELL_ATTACH:
+		break;
+	case DFE_TDD_TICK_KEEPALIVE:
+		bKeepTickAlive = !!msg->payload[0];
+		break;
+	case DFE_TDD_UL_TIME_ADVANCE:
+		vSetTimeAdvance(msg->payload[0]);
+		break;
+	case DFE_TDD_TIME_OFFSET_CORR:
+		vTddApplyTimeOffsetCorrection(msg->payload[0]);
 		break;
 	default:
 		prvSendMsgToHost(msg->type, DFE_INVALID_COMMAND, 0);
@@ -1538,7 +1671,11 @@ static void prvRxLoop(void *pvParameters)
 
 int vDFEInit(void)
 {
+	struct la9310_hif * pxHif = pLa9310Info->pHif;
 	int ret = 0;
+
+	/* set ver field in HIF */
+	pxHif->ver = CM4_DFE_SW_VER;
 
 	/* stats init */
 	ulCurrentSlot = 0;
@@ -1554,7 +1691,7 @@ int vDFEInit(void)
 	memset(slots, 0, MAX_SLOTS * sizeof(tSlot));
 
 	memset(app_logging, 0, sizeof(app_logging));
-	stop = pdFALSE;
+	bTddStop = pdFALSE;
 	bVspaProductionBinary = !!((iLa9310AviVspaSwVer() & VSPA_SW_VER_PRODUCTION) == VSPA_SW_VER_PRODUCTION);
 
 	prvVspaWarmUp();
