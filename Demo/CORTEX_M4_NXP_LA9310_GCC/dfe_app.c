@@ -129,12 +129,15 @@ const uint32_t max_slots_per_sfn[SCS_MAX] = {
 };
 
 #ifdef LA9310_1SEC_PPS
-const uint32_t ppsSkipCount[SCS_MAX] = {
-	[SCS_kHz15]  = 1000,
-	[SCS_kHz30]  = 2000,
-};
+// 2000 * 500mS = 1Sec
+// 1000 * 1ms = 1Sec
+// Based on Slot Period
+uint32_t ppsOutSkipCount = 0;
 
-uint32_t ppsOutSkipCount = 0; // 2000 * 500mS = 1Sec
+const uint32_t ppsSkipCount[SCS_MAX] = {
+	[SCS_kHz15]  = (1000 - 1),
+	[SCS_kHz30]  = (2000 - 1),
+};
 #endif
 
 sTraceEntry app_logging[MAX_TS] = { 0 };
