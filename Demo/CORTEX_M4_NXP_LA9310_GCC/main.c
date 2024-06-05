@@ -27,6 +27,7 @@
 #include <sw_cmd_engine.h>
 #include "la9310_v2h_if.h"
 #include "drivers/avi/la9310_vspa_dma.h"
+#include "drivers/avi/la9310_avi_ds.h"
 #include <la9310_dcs_api.h>
 
 #if NXP_ERRATUM_A_009410
@@ -465,6 +466,10 @@ int iInitHandler ( void )
     vPhyTimerComparatorForce(PHY_TIMER_COMP_R01, ePhyTimerComparatorOut1);
 #endif
     /*VSPA AVI Init*/
+#ifdef LA9310_DFE_APP
+    /* Tell AVI driver that MBOX0 should not be monitored */
+    vVSPAMboxMonitorMaskSet(CM4_MBOX1_STATUS | VSPA_MBOX1_STATUS /* | CM4_MBOX0_STATUS | VSPA_MBOX0_STATUS */);
+#endif
     avihndl = iLa9310AviInit();
 
     if( NULL == avihndl )
