@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2021 NXP
+ * Copyright 2021, 2024 NXP
  */
 #ifndef __LA9310_PINMUX_H__
 #define __LA9310_PINMUX_H__
