@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2017, 2021 NXP
+ * Copyright 2017, 2021, 2024 NXP
  */
 #include "immap.h"
 #include "core_cm4.h"
