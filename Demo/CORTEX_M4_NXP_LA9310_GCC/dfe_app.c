@@ -42,6 +42,14 @@
 #define TDD_SWITCH_TX_ADV       0 /* 0uS - compensated by Host/M7 TDD logic */
 
 #define VSPA_SW_VER_PRODUCTION  0xDFEF0000
+
+#define CM4_DFE_SW_ID           0xDFE00000
+#define CM4_DFE_SW_REV          0x0  /* 8-bit  */
+#define CM4_DFE_SW_MAJOR        0x00 /* 16-bit */
+#define CM4_DFE_SW_MINOR        0x04 /* 16-bit */
+
+#define CM4_DFE_SW_VER          (CM4_DFE_SW_ID |  CM4_DFE_SW_REV << 24 | CM4_DFE_SW_MAJOR << 16 | CM4_DFE_SW_MINOR)
+
 bool_t bVspaProductionBinary = pdFALSE;
 
 QueueHandle_t xTimeQueue;
@@ -1663,7 +1671,11 @@ static void prvRxLoop(void *pvParameters)
 
 int vDFEInit(void)
 {
+	struct la9310_hif * pxHif = pLa9310Info->pHif;
 	int ret = 0;
+
+	/* set ver field in HIF */
+	pxHif->ver = CM4_DFE_SW_VER;
 
 	/* stats init */
 	ulCurrentSlot = 0;
