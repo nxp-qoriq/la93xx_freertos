@@ -298,13 +298,10 @@ void AviHndleMboxInterrupt( struct avi_hndlr * AviHndlr )
 
         OUT_32( &pVspaRegs->vspa_status, CM4_MBOX1_STATUS );
     }
-    else if ( uMailboxMonitorMask == VSPA_MBOX_MASK )
+    else
     {
         log_err( "ERR: Invalid VSPA status\n" );
     }
-
-    /* ack the non-monitored events as well to avoid flooding CM4 with VSPA IRQs */
-    OUT_32( &pVspaRegs->vspa_status, VSPA_MBOX_MASK );
 
     log_dbg( "%s: Out\n\r", __func__ );
 }
@@ -474,7 +471,7 @@ int iLa9310AviConfig( void )
     /* Enable Mailbox related Interrupts */
     pVspaRegs = pAviHndlr->pVspaRegs;
     OUT_32( &pVspaRegs->vspa_irqen,
-            ( IN_32( &pVspaRegs->vspa_irqen ) | VSPA_ENABLE_MAILBOX_IRQ ) );
+            ( IN_32( &pVspaRegs->vspa_irqen ) | uMailboxMonitorMask ) );
 
     /* Enable VSPA interrupt handling for FreeRTOS */
     log_info( "INFO:%s: Enabling IRQ_VSPA\n\r", __func__ );
@@ -506,7 +503,7 @@ void iLa9310AviClose( void )
         /* Disabling Mbox Irqs */
         OUT_32( &pVspaRegs->vspa_irqen,
                 IN_32( &pVspaRegs->vspa_irqen ) &
-                ( ~VSPA_ENABLE_MAILBOX_IRQ ) );
+                ( ~uMailboxMonitorMask ) );
         log_dbg( "%s:MailBox Interrupts have been disabled\n",
                  __func__ );
     }

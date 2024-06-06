@@ -25,8 +25,7 @@ typedef enum {
 	MBOX_OPC_STOP = 0,
 	MBOX_OPC_SEMISTATIC = 0xF1,
 	MBOX_OPC_FDD = 2,
-	MBOX_OPC_TDD_TX = 3,
-	MBOX_OPC_TDD_RX = 4,
+	MBOX_OPC_TDD = 3,
 	MBOX_OPC_DDR_CFG_4KB = 0xF5,
 	MBOX_OPC_DDR_CFG_128B = 0xF6,
 	MBOX_OPC_DEBUG_BP = 0xF7,
@@ -79,54 +78,60 @@ struct dfe_mbox {
 
 #define MBOX_CLEAR(mbox)                        {(mbox).msb = 0; (mbox).lsb = 0;}
 
-#define MBOX_SET_OPCODE(mbox, opcode)           MBOX_SET_FIELD((mbox).msb, opcode, 8, 24)
+#define MBOX_SET_OPCODE(mbox, opcode)           MBOX_SET_FIELD((mbox).msb, (opcode), 8, 24)
 #define MBOX_GET_OPCODE(mbox)                   MBOX_GET_FIELD((mbox).msb, 8, 24)
 
-#define MBOX_SET_TX_SYM_NR(mbox, nr)            MBOX_SET_FIELD((mbox).msb, nr, 4, 20)
+#define MBOX_SET_TX_SYM_NR(mbox, nr)            MBOX_SET_FIELD((mbox).msb, (nr), 4, 20)
 #define MBOX_GET_TX_SYM_NR(mbox)                MBOX_GET_FIELD((mbox).msb, 4, 20)
-#define MBOX_SET_TX_ADDR(mbox, addr)            MBOX_SET_FIELD((mbox).msb, addr, 20, 0)
+#define MBOX_SET_TX_ADDR(mbox, addr)            MBOX_SET_FIELD((mbox).msb, (addr), 20, 0)
 #define MBOX_GET_TX_ADDR(mbox)                  MBOX_GET_FIELD((mbox).msb, 20, 0)
-#define MBOX_SET_SYM_SIZE(mbox, size)           MBOX_SET_FIELD((mbox).lsb, size, 8, 24)
+#define MBOX_SET_SYM_SIZE(mbox, size)           MBOX_SET_FIELD((mbox).lsb, (size), 8, 24)
 #define MBOX_GET_SYM_SIZE(mbox)                 MBOX_GET_FIELD((mbox).lsb, 8, 24)
-#define MBOX_SET_RX_SYM_NR(mbox, nr)            MBOX_SET_FIELD((mbox).lsb, nr, 4, 20)
+#define MBOX_SET_RX_SYM_NR(mbox, nr)            MBOX_SET_FIELD((mbox).lsb, (nr), 4, 20)
 #define MBOX_GET_RX_SYM_NR(mbox)                MBOX_GET_FIELD((mbox).lsb, 4, 20)
-#define MBOX_SET_RX_ADDR(mbox, addr)            MBOX_SET_FIELD((mbox).lsb, addr, 20, 0)
+#define MBOX_SET_RX_ADDR(mbox, addr)            MBOX_SET_FIELD((mbox).lsb, (addr), 20, 0)
 #define MBOX_GET_RX_ADDR(mbox)                  MBOX_GET_FIELD((mbox).lsb, 20, 0)
 
-#define MBOX_SET_SIZE(mbox, size)               MBOX_SET_PARAM1(mbox, size)
+#define MBOX_SET_SIZE(mbox, size)               MBOX_SET_PARAM1(mbox, (size))
 #define MBOX_GET_SIZE(mbox)                     MBOX_GET_PARAM1(mbox)
  
-#define MBOX_SET_START_SYM(mbox, sym)           MBOX_SET_FIELD((mbox).msb, sym, 4, 20)
-#define MBOX_GET_START_SYM(mbox)                MBOX_GET_FIELD((mbox).msb, 4, 20)
-#define MBOX_SET_STOP_SYM(mbox, nr)             MBOX_SET_FIELD((mbox).msb, nr, 4, 16)
-#define MBOX_GET_STOP_SYM(mbox)                 MBOX_GET_FIELD((mbox).msb, 4, 16)
+#define MBOX_SET_RX_START_SYM(mbox, sym)        MBOX_SET_FIELD((mbox).msb, (sym), 4, 20)
+#define MBOX_GET_RX_START_SYM(mbox)             MBOX_GET_FIELD((mbox).msb, 4, 20)
+#define MBOX_SET_RX_NR_SYM(mbox, nr)            MBOX_SET_FIELD((mbox).msb, (nr), 4, 16)
+#define MBOX_GET_RX_NR_SYM(mbox)                MBOX_GET_FIELD((mbox).msb, 4, 16)
 
-#define MBOX_SET_SLOT_NUM(mbox, slot)           MBOX_SET_FIELD((mbox).msb, slot, 8, 8)
-#define MBOX_GET_SLOT_NUM(mbox)                 MBOX_GET_FIELD((mbox).msb, 8, 8)
-#define MBOX_SET_SLOT_IDX(mbox, slot)           MBOX_SET_FIELD((mbox).msb, slot, 8, 0)
-#define MBOX_GET_SLOT_IDX(mbox)                 MBOX_GET_FIELD((mbox).msb, 8, 0)
+#define MBOX_SET_TX_START_SYM(mbox, sym)        MBOX_SET_FIELD((mbox).msb, (sym), 4, 12)
+#define MBOX_GET_TX_START_SYM(mbox)             MBOX_GET_FIELD((mbox).msb, 4, 12)
+#define MBOX_SET_TX_NR_SYM(mbox, nr)            MBOX_SET_FIELD((mbox).msb, (nr), 4, 8)
+#define MBOX_GET_TX_NR_SYM(mbox)                MBOX_GET_FIELD((mbox).msb, 4, 8)
 
-#define MBOX_SET_PARAM1(mbox, p)                MBOX_SET_FIELD((mbox).msb, p, 24, 0)
+#define MBOX_SET_TDD_STOP(mbox, stop)           MBOX_SET_FIELD((mbox).msb, (stop), 1, 7)
+#define MBOX_GET_TDD_STOP(mbox)                 MBOX_GET_FIELD((mbox).msb, 1, 7)
+
+#define MBOX_SET_SLOT_IDX(mbox, slot)           MBOX_SET_FIELD((mbox).msb, (slot), 5, 0)
+#define MBOX_GET_SLOT_IDX(mbox)                 MBOX_GET_FIELD((mbox).msb, 5, 0)
+
+#define MBOX_SET_PARAM1(mbox, p)                MBOX_SET_FIELD((mbox).msb, (p), 24, 0)
 #define MBOX_GET_PARAM1(mbox)                   MBOX_GET_FIELD((mbox).msb, 24, 0)
 #define MBOX_GET_PARAM1_SIGNED(mbox)            (((int)MBOX_GET_PARAM1(mbox) << 8) >> 8)
 
-#define MBOX_SET_ACK(mbox, ack)                 MBOX_SET_FIELD((mbox).lsb, ack, 1, 0)
+#define MBOX_SET_ACK(mbox, ack)                 MBOX_SET_FIELD((mbox).lsb, (ack), 1, 0)
 #define MBOX_GET_ACK(mbox)                      MBOX_GET_FIELD((mbox).lsb, 1, 0)
-#define MBOX_SET_ERR_CODE(mbox, err)            MBOX_SET_FIELD((mbox).lsb, err, 8, 1)
+#define MBOX_SET_ERR_CODE(mbox, err)            MBOX_SET_FIELD((mbox).lsb, (err), 8, 1)
 #define MBOX_GET_ERR_CODE(mbox)                 MBOX_GET_FIELD((mbox).lsb, 8, 1)
 
-#define MBOX_SET_PARAM2(mbox, p)                MBOX_SET_FIELD((mbox).lsb, p, 32, 0)
+#define MBOX_SET_PARAM2(mbox, p)                MBOX_SET_FIELD((mbox).lsb, (p), 32, 0)
 #define MBOX_GET_PARAM2(mbox)                   MBOX_GET_FIELD((mbox).lsb, 32, 0)
 
-#define MBOX_SET_ADDR(mbox, addr)               MBOX_SET_PARAM2(mbox, addr)
-#define MBOX_GET_ADDR(mbox)                     MBOX_GET_PARAM2(mbox)
+#define MBOX_SET_ADDR(mbox, addr)               MBOX_SET_PARAM2((mbox), (addr))
+#define MBOX_GET_ADDR(mbox)                     MBOX_GET_PARAM2((mbox))
 
 #define MBOX_GET_BENCHMARK_MODE(mbox)           MBOX_GET_FIELD((mbox).lsb, 4, 28)
-#define MBOX_SET_BENCHMARK_MODE(mbox, mode)     MBOX_SET_FIELD((mbox).lsb, mode, 4, 28)
+#define MBOX_SET_BENCHMARK_MODE(mbox, mode)     MBOX_SET_FIELD((mbox).lsb, (mode), 4, 28)
 #define MBOX_GET_NUM_PARALLEL_DMAS(mbox)        MBOX_GET_FIELD((mbox).lsb, 4, 24)
-#define MBOX_SET_NUM_PARALLEL_DMAS(mbox, num)   MBOX_SET_FIELD((mbox).lsb, num, 4, 24)
+#define MBOX_SET_NUM_PARALLEL_DMAS(mbox, num)   MBOX_SET_FIELD((mbox).lsb, (num), 4, 24)
 #define MBOX_GET_NUM_LOOPS(mbox)                MBOX_GET_FIELD((mbox).lsb, 4, 20)
-#define MBOX_SET_NUM_LOOPS(mbox, num)           MBOX_SET_FIELD((mbox).lsb, num, 4, 20)
+#define MBOX_SET_NUM_LOOPS(mbox, num)           MBOX_SET_FIELD((mbox).lsb, (num), 4, 20)
 
 #if 0 /* moved in host interface header */
 /* QEC-related */
