@@ -95,6 +95,7 @@ static bool bTddResume = pdFALSE;
 static bool bTddStop = pdFALSE;
 static bool bTickConfigured = pdFALSE;
 static bool bApplyTimeOffsetCorrection = pdFALSE;
+static bool bTimeOffsetCorrectionApplied = pdFALSE;
 
 enum ePhyTimerComparatorTrigger tx_allowed_last_state = ePhyTimerComparatorNoChange;
 enum ePhyTimerComparatorTrigger rx_allowed_last_state = ePhyTimerComparatorNoChange;
@@ -402,11 +403,12 @@ void vPhyTimerPPSOUTHandler()
 	/* Update next tick's timestamp */
 	ulNextTick += tick_interval[scs];
 
-// 	/* check if TO needs to be applied */
-// 	if (bApplyTimeOffsetCorrection) {
-// 		ulNextTick += iTimeOffsetCorr;
-// 		bApplyTimeOffsetCorrection = pdFALSE;
-// 	}
+	/* check if TO needs to be applied */
+	if (bApplyTimeOffsetCorrection) {
+		ulNextTick += iTimeOffsetCorr;
+		bApplyTimeOffsetCorrection = pdFALSE;
+		bTimeOffsetCorrectionApplied = pdTRUE;
+	}
 
 	/* log tick */
 	vTraceEventRecord(TRACE_TICK, 0xBBBBBBBB, ulNextTick);
@@ -732,6 +734,7 @@ tSlot cell_search_dl_slot;
 
 static void prvTick( void *pvParameters, long unsigned int param1 )
 {
+	struct dfe_mbox mbox_h2v = {0};
 	bool_t bIsDownlinkSlot = 0;
 	bool_t bIsUplinkSlot = 0;
 	uint32_t start_offset_dl = 0;
@@ -755,7 +758,8 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
   //PRINTF("%d : PMUX %d \r\n",ppsOutSkipCount, readPMUX(0));
 #endif
 
-  if ( bTddStop && (ulCurrentSlot == 0) ) {
+	/* check stop condition */
+	if ( bTddStop && (ulCurrentSlot == 0) ) {
 		/* disable tick and any other used comparator */
 		if (!bKeepTickAlive)
 			vPhyTimerComparatorDisable( PHY_TIMER_COMP_PPS_OUT );
@@ -805,6 +809,7 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 	/* log current tick */
 	vTraceEventRecord(TRACE_SLOT, ulCurrentSlot, ulTotalSlots);
 
+	/* if TDD is stopped but tick must be kept alive, update sfn/slot */
 	if (bTddStop && bKeepTickAlive)
 		goto update_sfn_slot;
 
@@ -813,6 +818,18 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 	bIsUplinkSlot = slots[ulCurrentSlot].is_ul;
 
 	vTraceEventRecord(TRACE_SLOT, ulPhyTimerComparatorGetStatus(uTxAntennaComparator), ulPhyTimerComparatorGetStatus(uRxAntennaComparator));
+
+#if 0 //TODO
+	/* if tick was manipulated, figure out if Tx/Rx Allowed were active */
+	if (bTimeOffsetCorrectionApplied) {
+		if (ulPhyTimerComparatorGetStatus(uTxAntennaComparator) & PHY_TIMER_COMPARATOR_STATUS_OUT_HIGH)
+			if (rx_allowed_off_set)
+				rx_allowed_off += //TODO
+		ulPhyTimerComparatorGetStatus(uRxAntennaComparator) & PHY_TIMER_COMPARATOR_STATUS_OUT_HIGH
+		
+		bTimeOffsetCorrectionApplied = pdFALSE;
+	}
+#endif
 
 	if (bIsDownlinkSlot) {
 		vGetSymbolsStartStop(&slots[ulCurrentSlot], 1 /*is_dl*/, &start_offset_dl, &stop_offset_dl);
@@ -870,6 +887,7 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 		}
 	}
 
+#if 0
 	if (bIsDownlinkSlot) {
 		vTraceEventRecord(TRACE_VSPA, 0x502, 0);
 		/* send slot config to VSPA */
@@ -897,6 +915,30 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 		prvSendVspaCmd(&mbox_h2v, 0xDEAD, NO_WAIT);
 		ulVspaMsgTxCnt++;
 	}
+#else
+	memset(&mbox_h2v, 0, sizeof(struct dfe_mbox));
+	/* Msg TDD operation 0x3, sfn, slot */
+	MBOX_SET_OPCODE(mbox_h2v, MBOX_OPC_TDD);
+	MBOX_SET_SLOT_IDX(mbox_h2v, ulCurrentSlotInFrame);
+
+	/* stop TDD bit */
+	if ((ulCurrentSlotInFrame == max_slots_per_sfn[scs] - 1) && bTddStop)
+		MBOX_SET_TDD_STOP(mbox_h2v, 1);
+
+	/* Downlink */
+	if (bIsDownlinkSlot) {
+		MBOX_SET_RX_START_SYM(mbox_h2v, slots[ulCurrentSlot].start_symbol_dl);
+		MBOX_SET_RX_NR_SYM(mbox_h2v, slots[ulCurrentSlot].end_symbol_dl - slots[ulCurrentSlot].start_symbol_dl + 1);
+	}
+
+	/* Uplink */
+	if (bIsUplinkSlot) {
+		MBOX_SET_TX_START_SYM(mbox_h2v, slots[ulCurrentSlot].start_symbol_ul);
+		MBOX_SET_TX_NR_SYM(mbox_h2v, slots[ulCurrentSlot].end_symbol_ul - slots[ulCurrentSlot].start_symbol_ul + 1);
+	}
+
+	prvSendVspaCmd(&mbox_h2v, 0xDEAD, NO_WAIT);
+#endif
 
 update_sfn_slot:
 
@@ -1073,6 +1115,7 @@ void vTddApplyTimeOffsetCorrection(int time_offset)
 {
 	PRINTF("TO = %d\r\n", time_offset);
 	iTimeOffsetCorr = time_offset;
+	bApplyTimeOffsetCorrection = pdTRUE;
 }
 
 static void prvTimeAgentTask(void *pvParameters)
