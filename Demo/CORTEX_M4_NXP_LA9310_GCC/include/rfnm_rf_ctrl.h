@@ -9,6 +9,7 @@
 
 
 #define PHYTIMER_500_US_61p44 	30720
+#define GPT3_CORRECTION_FACTOR_500US 16
 
 /* RF control structure */
 typedef struct {
