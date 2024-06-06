@@ -768,17 +768,24 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 		switch_txrx(0xBBBBBBBB, ulNextTick, !bKeepTickAlive /* stop tti*/);
 
 		/* stop Tx Allowed */
-		if (!bIsUplinkSlot) {
-			if (tx_allowed_off_set) {
-				vPhyTimerComparatorConfig( uTxAntennaComparator,
-											PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
-											ePhyTimerComparatorOut0,
-											tx_allowed_off );
-				vTraceEventRecord(TRACE_AXIQ_TX, 0x601, tx_allowed_off);
-				tx_allowed_off_set = 0;
-			}
-
+		if (tx_allowed_off_set) {
+			vPhyTimerComparatorConfig( uTxAntennaComparator,
+										PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+										ePhyTimerComparatorOut0,
+										tx_allowed_off );
+			vTraceEventRecord(TRACE_AXIQ_TX, 0x601, tx_allowed_off);
+			tx_allowed_off_set = 0;
 			tx_allowed_on_set = 0;
+		}
+
+		if (rx_allowed_off_set) {
+			vPhyTimerComparatorConfig( uRxAntennaComparator,
+										PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+										ePhyTimerComparatorOut0,
+										rx_allowed_off );
+			vTraceEventRecord(TRACE_AXIQ_RX, 0x501, rx_allowed_off);
+			rx_allowed_off_set = 0;
+			rx_allowed_on_set = 0;
 		}
 
 		/* trace the stop event */
