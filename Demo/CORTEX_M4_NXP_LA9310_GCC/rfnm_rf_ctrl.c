@@ -25,9 +25,9 @@ void switch_rf(uint32_t mode)
 	rf_ctrl.target_phytimer_ts = ts + PHYTIMER_500_US_61p44 * 2;
 
 	if (half_duplex)
-		rf_ctrl.tti_period_ts = PHYTIMER_500_US_61p44;
+		rf_ctrl.tti_period_ts = PHYTIMER_500_US_61p44 - GPT3_CORRECTION_FACTOR_500US;
 	else
-		rf_ctrl.tti_period_ts = PHYTIMER_500_US_61p44 * 2;
+		rf_ctrl.tti_period_ts = (PHYTIMER_500_US_61p44 - GPT3_CORRECTION_FACTOR_500US) * 2;
 
 #ifndef RFNM_CHECK_ALIGNMENT
 
@@ -62,9 +62,11 @@ vPhyTimerComparatorConfig( PHY_TIMER_COMP_RFCTL_5,
 
 void tti_trigger(uint32_t target_ts, uint32_t period)
 {
+	int factor = 1;
 	rf_ctrl.mode = 0;
 	rf_ctrl.target_phytimer_ts = target_ts;
-	rf_ctrl.tti_period_ts = period;
+	factor = period/PHYTIMER_500_US_61p44;
+	rf_ctrl.tti_period_ts = (PHYTIMER_500_US_61p44 - GPT3_CORRECTION_FACTOR_500US) * factor;
 
 	vPhyTimerComparatorConfig( PHY_TIMER_COMP_RFCTL_5,
 					PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
