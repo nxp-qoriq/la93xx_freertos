@@ -45,8 +45,8 @@
 #define VSPA_SW_VER_PRODUCTION  0xDFEF0000
 
 #define CM4_DFE_SW_ID           0xDFE00000
-#define CM4_DFE_SW_MAJOR        0x00 /* 16-bit */
-#define CM4_DFE_SW_MINOR        0x41 /* 16-bit */
+#define CM4_DFE_SW_MAJOR        0x00 /* 8-bit */
+#define CM4_DFE_SW_MINOR        0x41 /* 8-bit */
 
 #define CM4_DFE_SW_VER          (CM4_DFE_SW_ID | CM4_DFE_SW_MAJOR << 8 | CM4_DFE_SW_MINOR)
 
@@ -83,11 +83,10 @@ static uint32_t ulCurrentSfn;
 static uint32_t ulTotalSlots;
 static int32_t iUplinkTimeAdvance = 0;
 static int32_t iTimeOffsetCorr = 0;
+static int32_t iTimeOffsetCorrToApply = 0;
 /* Application internal counters*/
 uint32_t ulTotalTicks;
 uint32_t ulVspaMsgCnt;
-uint32_t ulVspaMsgTxCnt;
-uint32_t ulVspaMsgRxCnt;
 /* variable used for mainiting the system tick alive after TDD stop */
 static bool bKeepTickAlive = pdFALSE;
 static bool bTddResume = pdFALSE;
@@ -95,6 +94,7 @@ static bool bTddStop = pdFALSE;
 static bool bTickConfigured = pdFALSE;
 static bool bApplyTimeOffsetCorrection = pdFALSE;
 static bool bTimeOffsetCorrectionApplied = pdFALSE;
+static bool bTimeOffsetCorrectionTickApply = pdFALSE;
 
 enum ePhyTimerComparatorTrigger tx_allowed_last_state = ePhyTimerComparatorNoChange;
 enum ePhyTimerComparatorTrigger rx_allowed_last_state = ePhyTimerComparatorNoChange;
@@ -334,7 +334,8 @@ static void prvTimerCb(TimerHandle_t timer)
 
 void vPhyTimerTickConfig()
 {
-	uint32_t debug_ts = 0;
+	uint32_t debug_timestamp = 0;
+	uint32_t offset = 0;
 	NVIC_SetPriority( IRQ_PPS_OUT, 1 );
 	NVIC_EnableIRQ( IRQ_PPS_OUT );
 
@@ -350,15 +351,11 @@ void vPhyTimerTickConfig()
 		vPhyTimerDelay(0xF000); /* 1000uS (1ms) */
 	};
 
-	debug_ts = uGetPhyTimerTimestamp();
+	debug_timestamp = uGetPhyTimerTimestamp();
 
 	/* if frame trigger is present, use it */
-	if (ulLastPpsInTimestamp) {
-		ulNextTick = ulLastPpsInTimestamp;
-	} else {
-		ulNextTick = ulPhyTimerCapture( PHY_TIMER_COMP_PPS_OUT );
-	}
-
+	offset = (debug_timestamp - ulLastPpsInTimestamp) % (slot_duration[scs] * max_slots_per_sfn[scs]);
+	ulNextTick = debug_timestamp + slot_duration[scs] * max_slots_per_sfn[scs] - offset;
 	ulNextTick += (slot_duration[scs] * max_slots_per_sfn[scs]);
 	ulNextTick -= tick_interval[scs];
 
@@ -373,7 +370,7 @@ void vPhyTimerTickConfig()
 	       "                 now = %#x\r\n" \
 	       "          ulNextTick = %#x\r\n\r\n",
 	       ulLastPpsInTimestamp,
-	       debug_ts,
+	       debug_timestamp,
 	       ulNextTick);
 
 	bTickConfigured = pdTRUE;
@@ -407,6 +404,7 @@ void vPhyTimerPPSOUTHandler()
 		ulNextTick += iTimeOffsetCorr;
 		bApplyTimeOffsetCorrection = pdFALSE;
 		bTimeOffsetCorrectionApplied = pdTRUE;
+		iTimeOffsetCorrToApply = iTimeOffsetCorr;
 	}
 
 	/* log tick */
@@ -709,8 +707,6 @@ void vCellSearchStart(uint32_t start_offset)
 	/* reset all counters for easy debugging */
 	ulTotalTicks = 0;
 	ulVspaMsgCnt = 0;
-	ulVspaMsgRxCnt = 0;
-	ulVspaMsgTxCnt = 0;
 
 	/* next incremnet will turn these into 0 */
 	ulCurrentSfn = 1024;
@@ -825,18 +821,6 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 
 	vTraceEventRecord(TRACE_SLOT, ulPhyTimerComparatorGetStatus(uTxAntennaComparator), ulPhyTimerComparatorGetStatus(uRxAntennaComparator));
 
-#if 0 //TODO
-	/* if tick was manipulated, figure out if Tx/Rx Allowed were active */
-	if (bTimeOffsetCorrectionApplied) {
-		if (ulPhyTimerComparatorGetStatus(uTxAntennaComparator) & PHY_TIMER_COMPARATOR_STATUS_OUT_HIGH)
-			if (rx_allowed_off_set)
-				rx_allowed_off += //TODO
-		ulPhyTimerComparatorGetStatus(uRxAntennaComparator) & PHY_TIMER_COMPARATOR_STATUS_OUT_HIGH
-		
-		bTimeOffsetCorrectionApplied = pdFALSE;
-	}
-#endif
-
 	if (bIsDownlinkSlot) {
 		vGetSymbolsStartStop(&slots[ulCurrentSlot], 1 /*is_dl*/, &start_offset_dl, &stop_offset_dl);
 		vTraceEventRecord(TRACE_SLOT_DL, start_offset_dl, stop_offset_dl);
@@ -851,6 +835,13 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 		tx_allowed_stop = ulNextTick - iUplinkTimeAdvance + stop_offset_ul + AXIQ_TAIL_LENGTH;
 	}
 
+	if (bTimeOffsetCorrectionApplied) {
+		tx_allowed_stop -= iTimeOffsetCorrToApply;
+		rx_allowed_stop -= iTimeOffsetCorrToApply;
+		bTimeOffsetCorrectionApplied = pdFALSE;
+		bTimeOffsetCorrectionTickApply = pdTRUE;
+	}
+
 	if (bIsDownlinkSlot) {
 		if (!rx_allowed_on_set) {
 			rx_allowed_on = rx_allowed_start;
@@ -859,9 +850,10 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 										PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
 										ePhyTimerComparatorOut1,
 										rx_allowed_on );
-			switch_txrx(0xBBBBBBBB, rx_allowed_on, 0);
+			switch_txrx(0xBBBBBBBB, rx_allowed_on, (bTimeOffsetCorrectionTickApply) ? (tick_interval[scs] - GPT3_CORRECTION_FACTOR_500US): 0);
 			vTraceEventRecord(TRACE_AXIQ_RX, 0x502, rx_allowed_on);
 			rx_allowed_on_set = 1;
+			bTimeOffsetCorrectionTickApply = pdFALSE;
 		}
 
 		rx_allowed_off = rx_allowed_stop;
@@ -893,35 +885,7 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 		}
 	}
 
-#if 0
-	if (bIsDownlinkSlot) {
-		vTraceEventRecord(TRACE_VSPA, 0x502, 0);
-		/* send slot config to VSPA */
-		struct dfe_mbox mbox_h2v = {0};
-
-		MBOX_SET_OPCODE(mbox_h2v, MBOX_OPC_TDD_RX);
-		MBOX_SET_START_SYM(mbox_h2v, slots[ulCurrentSlot].start_symbol_dl);
-		MBOX_SET_STOP_SYM(mbox_h2v, slots[ulCurrentSlot].end_symbol_dl);
-		MBOX_SET_SLOT_NUM(mbox_h2v, max_slots_per_sfn[scs]);
-		MBOX_SET_SLOT_IDX(mbox_h2v, ulCurrentSlotInFrame);
-		prvSendVspaCmd(&mbox_h2v, 0xDEAD, NO_WAIT);
-		ulVspaMsgRxCnt++;
-	}
-
-	if (bIsUplinkSlot) {
-		vTraceEventRecord(TRACE_VSPA, 0x602, 0);
-		/* send slot config to VSPA */
-		struct dfe_mbox mbox_h2v = {0};
-
-		MBOX_SET_OPCODE(mbox_h2v, MBOX_OPC_TDD_TX);
-		MBOX_SET_START_SYM(mbox_h2v, slots[ulCurrentSlot].start_symbol_ul);
-		MBOX_SET_STOP_SYM(mbox_h2v, slots[ulCurrentSlot].end_symbol_ul);
-		MBOX_SET_SLOT_NUM(mbox_h2v, max_slots_per_sfn[scs]);
-		MBOX_SET_SLOT_IDX(mbox_h2v, ulCurrentSlotInFrame);
-		prvSendVspaCmd(&mbox_h2v, 0xDEAD, NO_WAIT);
-		ulVspaMsgTxCnt++;
-	}
-#else
+	/* VSPA messaging */
 	memset(&mbox_h2v, 0, sizeof(struct dfe_mbox));
 	/* Msg TDD operation 0x3, sfn, slot */
 	MBOX_SET_OPCODE(mbox_h2v, MBOX_OPC_TDD);
@@ -944,7 +908,6 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 	}
 
 	prvSendVspaCmd(&mbox_h2v, 0xDEAD, NO_WAIT);
-#endif
 
 update_sfn_slot:
 
@@ -959,8 +922,6 @@ update_sfn_slot:
 	{
 		ulCurrentSfn++;
 		ulCurrentSfn %= MAX_SFNS;
-		
-		//bApplyTimeOffsetCorrection = pdTRUE;
 	}
 
 	if (bTddStop && bKeepTickAlive)
@@ -1189,8 +1150,11 @@ void prvConfigTdd()
 	vPrintTddPattern();
 
 	/* do not reset counters or sfn/slot if tick is kept alive */
-	if (bKeepTickAlive && !bTddStop && bTickConfigured)
+	if (bKeepTickAlive && !bTddStop && bTickConfigured) {
+		/* update tick time offset */
+		tti_trigger(ulNextTick, tick_interval[scs]);
 		goto config_end;
+	}
 
 	/* send VSPA config */
 	prvVSPAConfig(0/*tdd*/, NO_TIMEOUT);
@@ -1198,8 +1162,6 @@ void prvConfigTdd()
 	/* reset all counters for easy debugging */
 	ulTotalTicks = 0;
 	ulVspaMsgCnt = 0;
-	ulVspaMsgRxCnt = 0;
-	ulVspaMsgTxCnt = 0;
 
 	/* next incremnet will turn these into 0 */
 	ulCurrentSfn = 1024;
@@ -1244,9 +1206,6 @@ int iTddStart(void)
 		return DFE_OPERATION_RUNNING;
 	}
 
-	//if (bTddStop && bKeepTickAlive)
-	//	bTddResume = pdTRUE;
-
 	bTddStop = pdFALSE;
 
 	prvConfigTdd();
@@ -1260,9 +1219,6 @@ void vTddStop(void)
 	PRINTF("ulLastPpsInTimestamp = %#x\r\n", ulLastPpsInTimestamp);
 	PRINTF("ulTotalTicks = %d\r\n", ulTotalTicks);
 	PRINTF("ulVspaMsgCnt = %d\r\n", ulVspaMsgCnt);
-	PRINTF("ulVspaMsgTxCnt = %d\r\n", ulVspaMsgTxCnt);
-	PRINTF("ulVspaMsgRxCnt = %d\r\n", ulVspaMsgRxCnt);
-	PRINTF("tx+rx = %d\r\n", ulVspaMsgTxCnt + ulVspaMsgRxCnt);
 }
 
 void vFddStartStop(uint32_t is_on)
@@ -1761,8 +1717,6 @@ int vDFEInit(void)
 	ulTotalSlots = 0;
 	ulTotalTicks = 0;
 	ulVspaMsgCnt = 0;
-	ulVspaMsgRxCnt = 0;
-	ulVspaMsgTxCnt = 0;
 
 	/* keep slots[] in heap */
 	slots = pvPortMalloc(MAX_SLOTS * sizeof(tSlot));
