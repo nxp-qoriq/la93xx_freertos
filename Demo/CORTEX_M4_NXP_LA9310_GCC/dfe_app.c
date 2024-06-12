@@ -95,6 +95,10 @@ static bool bTickConfigured = pdFALSE;
 static bool bApplyTimeOffsetCorrection = pdFALSE;
 static bool bTimeOffsetCorrectionApplied = pdFALSE;
 static bool bTimeOffsetCorrectionTickApply = pdFALSE;
+static bool bApplySfnSlotUpdate = pdFALSE;
+static bool bSfnSlotUpdateIsDelta = pdFALSE;
+int32_t sfn_update;
+int32_t slot_update;
 
 enum ePhyTimerComparatorTrigger tx_allowed_last_state = ePhyTimerComparatorNoChange;
 enum ePhyTimerComparatorTrigger rx_allowed_last_state = ePhyTimerComparatorNoChange;
@@ -756,7 +760,11 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 #endif
 
 	/* check stop condition */
+#if 1
+	if ( bTddStop && (ulCurrentSlotInFrame == 0) ) {
+#else
 	if ( bTddStop && (ulCurrentSlot == 0) ) {
+#endif
 		/* disable tick and any other used comparator */
 		if (!bKeepTickAlive)
 			vPhyTimerComparatorDisable( PHY_TIMER_COMP_PPS_OUT );
@@ -912,6 +920,24 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 	prvSendVspaCmd(&mbox_h2v, 0xDEAD, NO_WAIT);
 
 update_sfn_slot:
+
+	if (bApplySfnSlotUpdate) {
+		if (!bSfnSlotUpdateIsDelta) {
+			ulCurrentSfn = sfn_update;
+			ulCurrentSlotInFrame = slot_update;
+		} else {
+			ulCurrentSfn += sfn_update;
+			ulCurrentSlotInFrame += slot_update;
+
+			if (ulCurrentSfn < 0)
+				ulCurrentSfn += MAX_SFNS;
+
+			if (ulCurrentSlotInFrame < 0)
+				ulCurrentSlotInFrame += max_slots_per_sfn[scs];
+		}
+
+		bApplySfnSlotUpdate = pdFALSE;
+	}
 
 	/* update current slot */
 	ulCurrentSlot++;
@@ -1082,9 +1108,25 @@ void vSetupTddPattern(uint32_t cfg_scs)
 
 void vTddApplyTimeOffsetCorrection(int time_offset)
 {
+#if 0
 	PRINTF("TO = %d\r\n", time_offset);
+#endif
 	iTimeOffsetCorr = time_offset;
 	bApplyTimeOffsetCorrection = pdTRUE;
+}
+
+void vTddApplySfnSlotUpdate(uint32_t is_delta, int32_t sfn, int32_t slot)
+{
+#if 0
+	PRINTF("is_delta = %d\r\n", is_delta);
+	PRINTF("     sfn = %d\r\n", sfn);
+	PRINTF("    slot = %d\r\n", slot);
+#endif
+	bSfnSlotUpdateIsDelta = !!is_delta;
+	sfn_update = sfn;
+	slot_update = slot;
+
+	bApplySfnSlotUpdate = pdTRUE;
 }
 
 static void prvTimeAgentTask(void *pvParameters)
@@ -1643,6 +1685,12 @@ static void prvProcessRx(struct dfe_msg *msg)
 		break;
 	case DFE_TDD_TIME_OFFSET_CORR:
 		vTddApplyTimeOffsetCorrection(msg->payload[0]);
+		break;
+	case DFE_TDD_SFN_SLOT_SET:
+		vTddApplySfnSlotUpdate(0, msg->payload[0], msg->payload[1]);
+		break;
+	case DFE_TDD_SFN_SLOT_DELTA:
+		vTddApplySfnSlotUpdate(1, msg->payload[0], msg->payload[1]);
 		break;
 	default:
 		prvSendMsgToHost(msg->type, DFE_INVALID_COMMAND, 0);
