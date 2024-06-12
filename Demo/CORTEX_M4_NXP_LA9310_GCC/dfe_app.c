@@ -385,6 +385,7 @@ void vPhyTimerPPSINHandler()
 
 void vPhyTimerPPSOUTHandler()
 {
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	NVIC_ClearPendingIRQ( IRQ_PPS_OUT );
 
 	if (bFddIsRunning)
@@ -394,6 +395,8 @@ void vPhyTimerPPSOUTHandler()
 				PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
 				ePhyTimerComparatorOutToggle,
 				ulNextTick );
+
+		portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 		return;
 	}
 	/* Update next tick's timestamp */
@@ -416,7 +419,6 @@ void vPhyTimerPPSOUTHandler()
 				ulNextTick );
 
 	/* Call the tick callback */
-	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 	xTimerPendFunctionCallFromISR( prvTick, NULL, 0, &xHigherPriorityTaskWoken );
 	portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
 }
@@ -1226,8 +1228,6 @@ void vFddStartStop(uint32_t is_on)
 	uint32_t comparator_value;
 
 	is_on = !!is_on;
-	
-	bFddIsRunning = is_on;
 
 	PRINTF("Set TxAllowed(CH5), RxAllowed(CH2) to ");
 	if (is_on) {
@@ -1264,7 +1264,6 @@ void vFddStartStop(uint32_t is_on)
 									PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
 									comparator_value,
 									timestamp_to_start );
-
 	if (is_on)
 		vPhyTimerComparatorConfig( PHY_TIMER_COMP_PPS_OUT,
 			PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
@@ -1272,6 +1271,8 @@ void vFddStartStop(uint32_t is_on)
 			timestamp_to_start );
 	else
 		vPhyTimerComparatorDisable( PHY_TIMER_COMP_PPS_OUT );
+
+	bFddIsRunning = is_on;
 }
 
 int iBenchmarkVspaTest(uint32_t size, uint32_t mode, uint32_t parallel_dma, uint32_t iterations, uint32_t *gbits, uint32_t *mbits)
