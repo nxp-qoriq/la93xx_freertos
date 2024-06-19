@@ -77,10 +77,10 @@ static bool bFddIsRunning = pdFALSE;
 static uint32_t ulLastPpsInTimestamp = 0;
 static uint32_t ulNextTick;
 /* SFN/slot keeping */
-static uint32_t ulCurrentSlot;
-static uint32_t ulCurrentSlotInFrame;
-static uint32_t ulCurrentSfn;
-static uint32_t ulTotalSlots;
+static volatile uint32_t ulCurrentSlot;
+static volatile uint32_t ulCurrentSlotInFrame;
+static volatile uint32_t ulCurrentSfn;
+static volatile uint32_t ulTotalSlots;
 static int32_t iUplinkTimeAdvance = 0;
 static int32_t iTimeOffsetCorr = 0;
 static int32_t iTimeOffsetCorrToApply = 0;
@@ -88,15 +88,17 @@ static int32_t iTimeOffsetCorrToApply = 0;
 uint32_t ulTotalTicks;
 uint32_t ulVspaMsgCnt;
 /* variable used for mainiting the system tick alive after TDD stop */
-static bool bKeepTickAlive = pdFALSE;
-static bool bTddResume = pdFALSE;
-static bool bTddStop = pdFALSE;
-static bool bTickConfigured = pdFALSE;
-static bool bApplyTimeOffsetCorrection = pdFALSE;
-static bool bTimeOffsetCorrectionApplied = pdFALSE;
-static bool bTimeOffsetCorrectionTickApply = pdFALSE;
-static bool bApplySfnSlotUpdate = pdFALSE;
-static bool bSfnSlotUpdateIsDelta = pdFALSE;
+static volatile bool bKeepTickAlive = pdFALSE;
+static volatile bool bTddResume = pdFALSE;
+static volatile bool bTddStop = pdFALSE;
+static volatile bool bTddStopSentToVSPA = pdFALSE;
+static volatile bool bTickConfigured = pdFALSE;
+static volatile bool bApplyTimeOffsetCorrection = pdFALSE;
+static volatile bool bTimeOffsetCorrectionApplied = pdFALSE;
+static volatile bool bTimeOffsetCorrectionTickApply = pdFALSE;
+static volatile bool bApplySfnSlotUpdate = pdFALSE;
+static volatile bool bSfnSlotUpdateIsDelta = pdFALSE;
+static volatile bool bTddIsStopped = pdFALSE;
 int32_t sfn_update;
 int32_t slot_update;
 
@@ -760,14 +762,12 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 #endif
 
 	/* check stop condition */
-#if 1
-	if ( bTddStop && (ulCurrentSlotInFrame == 0) ) {
-#else
-	if ( bTddStop && (ulCurrentSlot == 0) ) {
-#endif
+	if ( bTddStopSentToVSPA && bTddStop ) {
 		/* disable tick and any other used comparator */
-		if (!bKeepTickAlive)
+		if (!bKeepTickAlive) {
 			vPhyTimerComparatorDisable( PHY_TIMER_COMP_PPS_OUT );
+			bTickConfigured = pdFALSE;
+		}
 
 		/* stop RF Tx if on */
 		switch_txrx(0xBBBBBBBB, ulNextTick, !bKeepTickAlive /* stop tti*/);
@@ -781,6 +781,7 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 			vTraceEventRecord(TRACE_AXIQ_TX, 0x601, tx_allowed_off);
 			tx_allowed_off_set = 0;
 			tx_allowed_on_set = 0;
+			PRINTF("\r\n\r\nTX OFF !\r\n\r\n");
 		}
 
 		if (rx_allowed_off_set) {
@@ -791,39 +792,52 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 			vTraceEventRecord(TRACE_AXIQ_RX, 0x501, rx_allowed_off);
 			rx_allowed_off_set = 0;
 			rx_allowed_on_set = 0;
+			PRINTF("\r\n\r\nRX OFF !\r\n\r\n");
 		}
 
+		/* reset the flag */
+		bTddStopSentToVSPA = pdFALSE;
+		bTddIsStopped = pdTRUE;
+
+		PRINTF("\r\n\r\nISR stop stop stop! bKeepTickAlive = %d, bTddStopSentToVSPA = %d, bTddResume = %d\r\n\r\n",
+			bKeepTickAlive, bTddStopSentToVSPA, bTddResume);
+
 		/* trace the stop event */
-		if (!bKeepTickAlive)
+		if (!bKeepTickAlive) {
 			vTraceEventRecord(TRACE_TICK, 0xDEADDEAD, ulNextTick);
-
-		if (!bKeepTickAlive)
 			return;
-	}
-
-	//vTraceEventRecord(TRACE_TICK, 0xFFFF0002, ulNextTick);
-	if (bTddResume && bKeepTickAlive) {
-		vTraceEventRecord(TRACE_TICK, 0xFFFF0003, ulCurrentSlotInFrame);
-		/* if tdd start command is issued and keep is alive, start pattern aligned to frame */
-		if (ulCurrentSlotInFrame != (max_slots_per_sfn[scs] - 1))
-			goto update_sfn_slot;
-
-		vTraceEventRecord(TRACE_TICK, 0x55555555, ulCurrentSfn);
-		vTraceEventRecord(TRACE_TICK, 0x55555555, ulCurrentSlotInFrame);
-
-		bTddResume = pdFALSE;
+		}
 	}
 
 	/* notify host about current slot/sfn */
 	if (ipc_host_connected)
 		prvSendMsgToHost(DFE_TTI_MESSAGE, 0, 2 /* payload words*/, ulCurrentSlotInFrame, ulCurrentSfn);
 
+	//vTraceEventRecord(TRACE_TICK, 0xFFFF0002, ulNextTick);
+#if 1
+	if (bTddResume && bKeepTickAlive) {
+		vTraceEventRecord(TRACE_TICK, 0xFFFF0003, ulCurrentSlotInFrame);
+		/* if tdd start command is issued and keep is alive, start pattern aligned to frame */
+		if (ulCurrentSlotInFrame != 0) //(max_slots_per_sfn[scs] - 1) )
+			goto update_sfn_slot;
+
+		ulCurrentSlot = 0;
+
+		vTraceEventRecord(TRACE_TICK, 0x55555555, ulCurrentSfn);
+		vTraceEventRecord(TRACE_TICK, 0x55555555, ulCurrentSlotInFrame);
+
+		bTddResume = pdFALSE;
+		bTddIsStopped = pdFALSE;
+	}
+#endif
+
 	/* log current tick */
 	vTraceEventRecord(TRACE_SLOT, ulCurrentSlot, ulTotalSlots);
 
 	/* if TDD is stopped but tick must be kept alive, update sfn/slot */
-	if (bTddStop && bKeepTickAlive)
+	if (bTddIsStopped && bKeepTickAlive) {
 		goto update_sfn_slot;
+	}
 
 	/* look into pre-computed slot array */
 	bIsDownlinkSlot = slots[ulCurrentSlot].is_dl;
@@ -902,8 +916,10 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 	MBOX_SET_SLOT_IDX(mbox_h2v, ulCurrentSlotInFrame);
 
 	/* stop TDD bit */
-	if ((ulCurrentSlotInFrame == max_slots_per_sfn[scs] - 1) && bTddStop)
+	if ((ulCurrentSlotInFrame == (max_slots_per_sfn[scs] - 1)) && bTddStop) {
 		MBOX_SET_TDD_STOP(mbox_h2v, 1);
+		bTddStopSentToVSPA = pdTRUE;
+	}
 
 	/* Downlink */
 	if (bIsDownlinkSlot) {
@@ -936,6 +952,7 @@ update_sfn_slot:
 				ulCurrentSlotInFrame += max_slots_per_sfn[scs];
 		}
 
+		ulCurrentSlot = ulCurrentSlotInFrame % ulTotalSlots;
 		bApplySfnSlotUpdate = pdFALSE;
 	}
 
@@ -952,7 +969,7 @@ update_sfn_slot:
 		ulCurrentSfn %= MAX_SFNS;
 	}
 
-	if (bTddStop && bKeepTickAlive)
+	if (bTddIsStopped && bKeepTickAlive)
 		goto tick_end;
 
 	if (!bIsDownlinkSlot) {
@@ -1193,12 +1210,16 @@ void prvConfigTdd()
 
 	vPrintTddPattern();
 
+	PRINTF("debug>>bKeepTickAlive=%d, bTddStop=%d, bTickConfigured=%d\r\n", bKeepTickAlive, bTddStop, bTickConfigured);
+
 	/* do not reset counters or sfn/slot if tick is kept alive */
 	if (bKeepTickAlive && !bTddStop && bTickConfigured) {
+		PRINTF("debug>>Tick previously configured!\r\n");
 		/* update tick time offset */
 		tti_trigger(ulNextTick, tick_interval[scs]);
 		goto config_end;
 	}
+	else PRINTF("debug>> moving fwd wth tdd config\r\n");
 
 	/* send VSPA config */
 	prvVSPAConfig(0/*tdd*/, NO_TIMEOUT);
@@ -1213,6 +1234,8 @@ void prvConfigTdd()
 
 	/* configure tick interval and setup PhyTimer */
 	vPhyTimerTickConfig();
+
+	return;
 
 config_end:
 	bTddResume = pdTRUE;
@@ -1244,6 +1267,8 @@ void vSetTimeAdvance(int32_t iVal)
 
 int iTddStart(void)
 {
+	PRINTF("bKeepTickAlive = %d\r\n", bKeepTickAlive);
+
 	/* check if TDD is running */
 	if (!bTddStop && ulTotalTicks) {
 		PRINTF("TDD operation already running!\r\n");
