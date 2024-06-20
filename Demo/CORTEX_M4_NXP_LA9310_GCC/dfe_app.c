@@ -358,8 +358,12 @@ void vPhyTimerTickConfig()
 	debug_timestamp = uGetPhyTimerTimestamp();
 
 	/* if frame trigger is present, use it */
-	offset = (debug_timestamp - ulLastPpsInTimestamp) % (slot_duration[scs] * max_slots_per_sfn[scs]);
-	ulNextTick = debug_timestamp + slot_duration[scs] * max_slots_per_sfn[scs] - offset;
+  if (0 != ulLastPpsInTimestamp) {
+    offset = (debug_timestamp - ulLastPpsInTimestamp) % (slot_duration[scs] * max_slots_per_sfn[scs]);
+    ulNextTick = debug_timestamp + slot_duration[scs] * max_slots_per_sfn[scs] - offset;
+  } else {
+    ulNextTick = debug_timestamp;
+  }
 	ulNextTick += (slot_duration[scs] * max_slots_per_sfn[scs]);
 	ulNextTick -= tick_interval[scs];
 
