@@ -343,9 +343,11 @@ void vPhyTimerTickConfig()
 	NVIC_SetPriority( IRQ_PPS_OUT, 1 );
 	NVIC_EnableIRQ( IRQ_PPS_OUT );
 
+#ifdef LA9310_1SEC_PPS
 	setPMUX(0, PMUXCR0_PPSOUT_PIN);
 	vPhyTimerComparatorForce(PHY_TIMER_COMP_PPS_OUT, ePhyTimerComparatorOut1);
 	ppsOutSkipCount = ppsSkipCount[scs];
+#endif
 
 	/* figure out if there's any frame trigger signal */
 	ulLastPpsInTimestamp = 0;
