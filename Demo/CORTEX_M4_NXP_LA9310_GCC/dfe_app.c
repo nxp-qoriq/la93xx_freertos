@@ -136,7 +136,7 @@ const uint32_t max_slots_per_sfn[SCS_MAX] = {
 // 2000 * 500mS = 1Sec
 // 1000 * 1ms = 1Sec
 // Based on Slot Period
-uint32_t ppsOutSkipCount = 1999;
+uint32_t ppsOutSkipCount;
 
 const uint32_t ppsSkipCount[SCS_MAX] = {
 	[SCS_kHz15]  = (1000 - 1),
@@ -345,6 +345,7 @@ void vPhyTimerTickConfig()
 
 	setPMUX(0, PMUXCR0_PPSOUT_PIN);
 	vPhyTimerComparatorForce(PHY_TIMER_COMP_PPS_OUT, ePhyTimerComparatorOut1);
+	ppsOutSkipCount = ppsSkipCount[scs];
 
 	/* figure out if there's any frame trigger signal */
 	ulLastPpsInTimestamp = 0;
