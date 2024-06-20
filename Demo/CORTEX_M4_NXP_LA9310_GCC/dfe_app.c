@@ -136,7 +136,7 @@ const uint32_t max_slots_per_sfn[SCS_MAX] = {
 // 2000 * 500mS = 1Sec
 // 1000 * 1ms = 1Sec
 // Based on Slot Period
-uint32_t ppsOutSkipCount = 0;
+uint32_t ppsOutSkipCount = 1999;
 
 const uint32_t ppsSkipCount[SCS_MAX] = {
 	[SCS_kHz15]  = (1000 - 1),
@@ -343,6 +343,9 @@ void vPhyTimerTickConfig()
 	NVIC_SetPriority( IRQ_PPS_OUT, 1 );
 	NVIC_EnableIRQ( IRQ_PPS_OUT );
 
+	setPMUX(0, PMUXCR0_PPSOUT_PIN);
+	vPhyTimerComparatorForce(PHY_TIMER_COMP_PPS_OUT, ePhyTimerComparatorOut1);
+
 	/* figure out if there's any frame trigger signal */
 	ulLastPpsInTimestamp = 0;
 	NVIC_SetPriority( IRQ_PPS_IN, 2 );
@@ -358,12 +361,13 @@ void vPhyTimerTickConfig()
 	debug_timestamp = uGetPhyTimerTimestamp();
 
 	/* if frame trigger is present, use it */
-  if (0 != ulLastPpsInTimestamp) {
-    offset = (debug_timestamp - ulLastPpsInTimestamp) % (slot_duration[scs] * max_slots_per_sfn[scs]);
-    ulNextTick = debug_timestamp + slot_duration[scs] * max_slots_per_sfn[scs] - offset;
-  } else {
-    ulNextTick = debug_timestamp;
-  }
+	if (0 != ulLastPpsInTimestamp) {
+		offset = (debug_timestamp - ulLastPpsInTimestamp) % (slot_duration[scs] * max_slots_per_sfn[scs]);
+		ulNextTick = debug_timestamp + slot_duration[scs] * max_slots_per_sfn[scs] - offset;
+	} else {
+		ulNextTick = debug_timestamp;
+	}
+
 	ulNextTick += (slot_duration[scs] * max_slots_per_sfn[scs]);
 	ulNextTick -= tick_interval[scs];
 
@@ -1255,7 +1259,6 @@ int iTddStart(void)
 	}
 
 	bTddStop = pdFALSE;
-
 	prvConfigTdd();
 	return 0;
 }
