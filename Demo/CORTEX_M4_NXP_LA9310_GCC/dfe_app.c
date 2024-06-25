@@ -748,6 +748,7 @@ tSlot cell_search_dl_slot;
 
 static void prvTick( void *pvParameters, long unsigned int param1 )
 {
+	struct la9310_hif * hif = pLa9310Info->pHif;
 	struct dfe_mbox mbox_h2v = {0};
 	bool_t bIsDownlinkSlot = 0;
 	bool_t bIsUplinkSlot = 0;
@@ -821,6 +822,9 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 	}
 
 	/* notify host about current slot/sfn */
+	hif->stats.dbg1 = ulCurrentSfn;
+	hif->stats.dbg2 = ulCurrentSlotInFrame;
+
 	if (ipc_host_connected)
 		prvSendMsgToHost(DFE_TTI_MESSAGE, 0, 2 /* payload words*/, ulCurrentSlotInFrame, ulCurrentSfn);
 
