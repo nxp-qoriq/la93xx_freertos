@@ -194,6 +194,8 @@ struct la9310_stats {
 	struct la9310_eDMA la9310_eDMA_ch[LA9310_eDMA_CHANNELS];
 	uint32_t WDOG_interrupt;
 	uint32_t v2h_intr_enabled;
+	uint32_t dbg1;
+	uint32_t dbg2;
 };
 
 struct hif_ipc_regs {
