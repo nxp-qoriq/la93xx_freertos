@@ -74,8 +74,8 @@ uint8_t  host_bypass_flag_tx_rx = 1;
 
 static uint32_t timestamp_to_start = 0;
 static bool bFddIsRunning = pdFALSE;
-static uint32_t ulLastPpsInTimestamp = 0;
-static uint32_t ulNextTick;
+static volatile uint32_t ulLastPpsInTimestamp = 0;
+static volatile uint32_t ulNextTick;
 /* SFN/slot keeping */
 static volatile uint32_t ulCurrentSlot;
 static volatile uint32_t ulCurrentSlotInFrame;
@@ -101,6 +101,11 @@ static volatile bool bSfnSlotUpdateIsDelta = pdFALSE;
 static volatile bool bTddIsStopped = pdFALSE;
 int32_t sfn_update;
 int32_t slot_update;
+
+uint32_t tdd_start1_ts = 0;
+uint32_t tdd_start2_ts = 0;
+uint32_t tdd_start3_ts = 0;
+uint32_t tdd_start4_ts = 0;
 
 enum ePhyTimerComparatorTrigger tx_allowed_last_state = ePhyTimerComparatorNoChange;
 enum ePhyTimerComparatorTrigger rx_allowed_last_state = ePhyTimerComparatorNoChange;
@@ -434,6 +439,9 @@ void vPhyTimerPPSOUTHandler()
 				PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
 				ePhyTimerComparatorOutToggle,
 				ulNextTick );
+
+	if (!tdd_start1_ts)
+			tdd_start1_ts = ulNextTick;
 
 	/* Call the tick callback */
 	xTimerPendFunctionCallFromISR( prvTick, NULL, 0, &xHigherPriorityTaskWoken );
@@ -793,7 +801,7 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 			vTraceEventRecord(TRACE_AXIQ_TX, 0x601, tx_allowed_off);
 			tx_allowed_off_set = 0;
 			tx_allowed_on_set = 0;
-			PRINTF("\r\n\r\nTX OFF !\r\n\r\n");
+			//PRINTF("\r\n\r\nTX OFF !\r\n\r\n");
 		}
 
 		if (rx_allowed_off_set) {
@@ -804,15 +812,15 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 			vTraceEventRecord(TRACE_AXIQ_RX, 0x501, rx_allowed_off);
 			rx_allowed_off_set = 0;
 			rx_allowed_on_set = 0;
-			PRINTF("\r\n\r\nRX OFF !\r\n\r\n");
+			//PRINTF("\r\n\r\nRX OFF !\r\n\r\n");
 		}
 
 		/* reset the flag */
 		bTddStopSentToVSPA = pdFALSE;
 		bTddIsStopped = pdTRUE;
 
-		PRINTF("\r\n\r\nISR stop stop stop! bKeepTickAlive = %d, bTddStopSentToVSPA = %d, bTddResume = %d\r\n\r\n",
-			bKeepTickAlive, bTddStopSentToVSPA, bTddResume);
+		//PRINTF("\r\n\r\nISR stop stop stop! bKeepTickAlive = %d, bTddStopSentToVSPA = %d, bTddResume = %d\r\n\r\n",
+		//	bKeepTickAlive, bTddStopSentToVSPA, bTddResume);
 
 		/* trace the stop event */
 		if (!bKeepTickAlive) {
@@ -843,6 +851,12 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 
 		bTddResume = pdFALSE;
 		bTddIsStopped = pdFALSE;
+		if (!tdd_start2_ts)
+			tdd_start2_ts = ulNextTick;
+		else if (!tdd_start3_ts)
+			tdd_start3_ts = ulNextTick;
+		else
+			tdd_start4_ts = ulNextTick;
 	}
 #endif
 
@@ -1161,6 +1175,7 @@ void vTddApplySfnSlotUpdate(uint32_t is_delta, int32_t sfn, int32_t slot)
 	bApplySfnSlotUpdate = pdTRUE;
 }
 
+#if 0
 static void prvTimeAgentTask(void *pvParameters)
 {
 	sTimeAgentMessage msg;
@@ -1213,6 +1228,7 @@ static void prvTimeAgentTask(void *pvParameters)
 		vTaskDelay(1);
 	}
 }
+#endif
 
 void prvConfigTdd()
 {
@@ -1302,6 +1318,10 @@ void vTddStop(void)
 	PRINTF("ulLastPpsInTimestamp = %#x\r\n", ulLastPpsInTimestamp);
 	PRINTF("ulTotalTicks = %d\r\n", ulTotalTicks);
 	PRINTF("ulVspaMsgCnt = %d\r\n", ulVspaMsgCnt);
+	PRINTF("tdd_start1_ts = %#x\r\n", tdd_start1_ts);
+	PRINTF("tdd_start2_ts = %#x\r\n", tdd_start2_ts);
+	PRINTF("tdd_start3_ts = %#x\r\n", tdd_start3_ts);
+	PRINTF("tdd_start4_ts = %#x\r\n", tdd_start4_ts);
 }
 
 void vFddStartStop(uint32_t is_on)
@@ -1657,6 +1677,15 @@ static void prvProcessRx(struct dfe_msg *msg)
 		slots[slot_idx].start_symbol_ul = msg->payload[5];
 		slots[slot_idx].end_symbol_ul = msg->payload[6];
 
+#if 0
+		PRINTF("slot[%d]: is_dl=%d, is_ul=%d, start_dl=%d, end_dl=%d, start_ul=%d, end_ul=%d\r\n",
+				slot_idx,
+				slots[slot_idx].is_dl, slots[slot_idx].is_ul,
+				slots[slot_idx].start_symbol_dl, slots[slot_idx].end_symbol_dl,
+				slots[slot_idx].start_symbol_ul, slots[slot_idx].end_symbol_ul
+		);
+#endif
+
 		/* slot configs must arrive in order! */
 		ulTotalSlots = slot_idx + 1;
 		break;
@@ -1817,7 +1846,7 @@ int vDFEInit(void)
 	prvVspaWarmUp();
 
 	/* create a task for host interface */
-	ret = xTaskCreate(prvRxLoop, "DFE Host Polling Loop", configMINIMAL_STACK_SIZE * 3,
+	ret = xTaskCreate(prvRxLoop, "DFE Host Polling Loop", configMINIMAL_STACK_SIZE * 4,
 			  NULL, tskIDLE_PRIORITY + 1, NULL );
 	if(ret != pdPASS)
 	{
@@ -1838,6 +1867,7 @@ int vDFEInit(void)
 	}
 #endif
 
+#if 0
 	/* create task for Time Agent */
 	ret = xTaskCreate(prvTimeAgentTask, "PhyTimer Agent", configMINIMAL_STACK_SIZE * 4,
 			  NULL, tskIDLE_PRIORITY + 2, NULL );
@@ -1846,7 +1876,7 @@ int vDFEInit(void)
 		PRINTF("Failed to create Time Agent task\r\n");
 		return -1;
 	}
-
+#endif
 	return ret;
 }
 
