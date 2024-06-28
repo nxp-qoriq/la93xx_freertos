@@ -15,7 +15,7 @@
 #define MAX_TRACE_STRING_DESC 8
 
 /* number of trace entries */
-#define MAX_TS 80
+#define MAX_TS 60
 
 typedef enum e_scs {
 	SCS_kHz15 = 0,
