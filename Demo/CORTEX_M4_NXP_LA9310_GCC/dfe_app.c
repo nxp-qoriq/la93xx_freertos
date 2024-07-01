@@ -81,7 +81,17 @@ static volatile uint32_t ulCurrentSlot;
 static volatile uint32_t ulCurrentSlotInFrame;
 static volatile uint32_t ulCurrentSfn;
 static volatile uint32_t ulTotalSlots;
-static int32_t iUplinkTimeAdvance = 0;
+
+// Intialize Timing Advance to 13us
+// This is in PHY TIMER ticks frequency
+// Time Advance is to be derived from 2 values
+// One is fixed Nta_offset which is 13uS and
+// one is Nta_max based on distance between BS and UE
+// 3GPP 38.133
+static int32_t iNtaOffset = 13*62; // 25600 *Tc (.509nS) 62 ~= 1uS of PhyTimer
+static int32_t iNtaMax = 0;
+static int32_t iUplinkTimeAdvance;
+
 static int32_t iTimeOffsetCorr = 0;
 static int32_t iTimeOffsetCorrToApply = 0;
 /* Application internal counters*/
@@ -1263,6 +1273,8 @@ void prvConfigTdd()
 	ulCurrentSfn = 1024;
 	ulCurrentSlotInFrame = max_slots_per_sfn[scs];
 
+	/* Initialize UL Time Advance */
+	iUplinkTimeAdvance	= iNtaOffset + iNtaMax;
 	/* configure tick interval and setup PhyTimer */
 	vPhyTimerTickConfig();
 
