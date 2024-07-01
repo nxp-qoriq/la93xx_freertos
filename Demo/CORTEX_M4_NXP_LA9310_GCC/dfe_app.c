@@ -88,7 +88,7 @@ static volatile uint32_t ulTotalSlots;
 // One is fixed Nta_offset which is 13uS and
 // one is Nta_max based on distance between BS and UE
 // 3GPP 38.133
-static int32_t iNtaOffset = 13*62; // 25600 *Tc (.509nS) 62 ~= 1uS of PhyTimer
+static uint32_t iNtaOffset = 13*62; // 25600 *Tc (.509nS) 62 ~= 1uS of PhyTimer
 static int32_t iNtaMax = 0;
 static int32_t iUplinkTimeAdvance;
 
