@@ -112,7 +112,7 @@ int copyFrame( struct v2h_buffer_desc * bdPointer,
  */
 void vV2HDemo( struct la9310_info * pLa9310Info )
 {
-    void * dtcm_addr;
+    void * itcm_addr;
     struct v2h_ring * ring_ptr;
     struct v2h_buffer_desc * bdPointer;
     volatile int delay;
@@ -131,8 +131,8 @@ void vV2HDemo( struct la9310_info * pLa9310Info )
     #endif
 
     log_info( "%s:V2H Demo\n\r", __func__ );
-    dtcm_addr = pLa9310Info->dtcm_addr;
-    ring_ptr = ( struct v2h_ring * ) ( ( uint32_t ) dtcm_addr +
+    itcm_addr = pLa9310Info->itcm_addr;
+    ring_ptr = ( struct v2h_ring * ) ( ( uint32_t ) itcm_addr +
                                        LA9310_V2H_RING_OFFSET );
     bdPointer = ring_ptr->bd_info;
     pHif->stats.v2h_intr_enabled = 1;

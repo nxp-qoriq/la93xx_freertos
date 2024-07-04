@@ -27,7 +27,7 @@
 /* remaining space , out of 256 head room */
 #define V2H_MAX_UNSED_32BIT_WORD	60
 /*start from END of Cal table*/
-#define LA9310_V2H_RING_OFFSET		0xD000
+#define LA9310_V2H_RING_OFFSET		0x1AC00
 
 #define MAX_SENT_RESUME			5
 //#define NLM_ENABLE_V2H
