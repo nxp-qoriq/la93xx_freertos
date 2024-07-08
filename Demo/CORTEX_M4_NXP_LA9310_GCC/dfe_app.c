@@ -721,6 +721,7 @@ uint32_t rx_allowed_on = 0;
 uint32_t rx_allowed_off = 0;
 bool_t rx_allowed_on_set = 0;
 bool_t rx_allowed_off_set = 0;
+uint32_t tx_axiq_tail = 0;
 
 #if 0 /* future */
 enum ue_states {
@@ -941,6 +942,12 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 		}
 
 		tx_allowed_off = tx_allowed_stop;
+
+		/* A-011354: Tx allowed length is expected to be: (TX_window_size_in_bytes+255)/256 * 256) */
+		tx_axiq_tail = ((tx_allowed_off - tx_allowed_on + 255)/256) * 256 - tx_allowed_off + tx_allowed_on;
+		vTraceEventRecord(TRACE_AXIQ_TX, 0x603, tx_axiq_tail);
+
+		tx_allowed_off += tx_axiq_tail;
 		tx_allowed_off_set = 1;
 
 		if (slots[ulCurrentSlot].end_symbol_ul < (MAX_SYMBOLS - 1) ) {
@@ -1039,7 +1046,7 @@ update_sfn_slot:
 									ePhyTimerComparatorOut0,
 									tx_allowed_off );
 			/* turn Rx on to stop the RF Tx */
-			switch_txrx(0xBBBBBBBB, tx_allowed_off - TDD_SWITCH_DELAY, 0);
+			switch_txrx(0xBBBBBBBB, tx_allowed_off - TDD_SWITCH_DELAY - tx_axiq_tail, 0);
 			vTraceEventRecord(TRACE_AXIQ_TX, 0x601, tx_allowed_off);
 			tx_allowed_off_set = 0;
 		}
