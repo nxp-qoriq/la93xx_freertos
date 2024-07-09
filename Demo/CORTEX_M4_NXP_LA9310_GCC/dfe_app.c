@@ -944,7 +944,7 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 		tx_allowed_off = tx_allowed_stop;
 
 		/* A-011354: Tx allowed length is expected to be: (TX_window_size_in_bytes+255)/256 * 256) */
-		tx_axiq_tail = ((tx_allowed_off - tx_allowed_on + 255)/256) * 256 - tx_allowed_off + tx_allowed_on;
+		tx_axiq_tail = ((tx_allowed_off - tx_allowed_on + 63)/64) * 64 - tx_allowed_off + tx_allowed_on;
 		vTraceEventRecord(TRACE_AXIQ_TX, 0x603, tx_axiq_tail);
 
 		tx_allowed_off += tx_axiq_tail;
