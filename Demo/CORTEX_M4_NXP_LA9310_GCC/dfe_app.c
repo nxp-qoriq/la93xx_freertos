@@ -805,6 +805,8 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 
 		/* stop Tx Allowed */
 		if (tx_allowed_off_set) {
+			/* wait for previous event to occur */
+			vPhyTimerWaitComparator(tx_allowed_on);
 			vPhyTimerComparatorConfig( uTxAntennaComparator,
 										PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
 										ePhyTimerComparatorOut0,
@@ -816,6 +818,8 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 		}
 
 		if (rx_allowed_off_set) {
+			/* wait for previous event to occur */
+			vPhyTimerWaitComparator(rx_allowed_on);
 			vPhyTimerComparatorConfig( uRxAntennaComparator,
 										PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
 										ePhyTimerComparatorOut0,
