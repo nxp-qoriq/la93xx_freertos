@@ -46,7 +46,7 @@
 
 #define CM4_DFE_SW_ID           0xDFE00000
 #define CM4_DFE_SW_MAJOR        0x00 /* 8-bit */
-#define CM4_DFE_SW_MINOR        0x41 /* 8-bit */
+#define CM4_DFE_SW_MINOR        0x42 /* 8-bit */
 
 #define CM4_DFE_SW_VER          (CM4_DFE_SW_ID | CM4_DFE_SW_MAJOR << 8 | CM4_DFE_SW_MINOR)
 
@@ -883,7 +883,7 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 	bIsDownlinkSlot = slots[ulCurrentSlot].is_dl;
 	bIsUplinkSlot = slots[ulCurrentSlot].is_ul;
 
-	vTraceEventRecord(TRACE_SLOT, ulPhyTimerComparatorGetStatus(uTxAntennaComparator), ulPhyTimerComparatorGetStatus(uRxAntennaComparator));
+	//vTraceEventRecord(TRACE_SLOT, ulPhyTimerComparatorGetStatus(uTxAntennaComparator), ulPhyTimerComparatorGetStatus(uRxAntennaComparator));
 
 	if (bIsDownlinkSlot) {
 		vGetSymbolsStartStop(&slots[ulCurrentSlot], 1 /*is_dl*/, &start_offset_dl, &stop_offset_dl);
@@ -977,6 +977,12 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 	if (bIsUplinkSlot) {
 		MBOX_SET_TX_START_SYM(mbox_h2v, slots[ulCurrentSlot].start_symbol_ul);
 		MBOX_SET_TX_NR_SYM(mbox_h2v, slots[ulCurrentSlot].end_symbol_ul - slots[ulCurrentSlot].start_symbol_ul + 1);
+
+		/* tell VSPA the time when Tx Allowed will be enabled */
+		if (tx_allowed_on == tx_allowed_start) {
+			MBOX_SET_PARAM2(mbox_h2v, (tx_allowed_on - uGetPhyTimerTimestamp())*491/61);
+			vTraceEventRecord(TRACE_AXIQ_TX, 0x604, MBOX_GET_PARAM2(mbox_h2v));
+		}
 	}
 
 	prvSendVspaCmd(&mbox_h2v, 0xDEAD, NO_WAIT);
@@ -1292,13 +1298,14 @@ config_end:
 	return;
 }
 
-void vConfigFddStart()
+void vConfigFddStart(uint32_t param)
 {
 	struct dfe_mbox mbox_h2v = {0};
 
 	prvVSPAConfig(1/*fdd*/, NO_TIMEOUT);
 
 	MBOX_SET_OPCODE(mbox_h2v, MBOX_OPC_FDD);
+	MBOX_SET_PARAM2(mbox_h2v, (param - uGetPhyTimerTimestamp())*491/61);
 	prvSendVspaCmd(&mbox_h2v, 0xDEAD, NO_TIMEOUT);
 }
 
@@ -1349,29 +1356,20 @@ void vFddStartStop(uint32_t is_on)
 
 	is_on = !!is_on;
 
-	PRINTF("Set TxAllowed(CH5), RxAllowed(CH2) to ");
-	if (is_on) {
-		comparator_value = ePhyTimerComparatorOut1;
-		PRINTF("1\r\n");
-
-		vConfigFddStart();
-	}
-	else {
-		comparator_value = ePhyTimerComparatorOut0;
-		PRINTF("0\r\n");
-		vConfigFddStop();
-	}
+	PRINTF("Set TxAllowed(CH%d), RxAllowed(CH%d) to %d", uTxAntennaComparator - 6, uRxAntennaComparator - 0, is_on);
 
 	NVIC_SetPriority( IRQ_PPS_OUT, 1 );
 	NVIC_EnableIRQ( IRQ_PPS_OUT );
 
-	/* delay of 2 symbols */
-	vPhyTimerDelay( 2 * ofdm_short_sym_time[SCS_kHz30]);
-
 	if (is_on) {
+		comparator_value = ePhyTimerComparatorOut1;
 		timestamp_to_start = uGetPhyTimerTimestamp() + (slot_duration[scs] * max_slots_per_sfn[scs]);
+		/* tell VSPA to to FDD start and also the aprox number of VSPA clocks when Tx Allowed will be turned on */
+		vConfigFddStart(timestamp_to_start);
 		ulNextTick = timestamp_to_start;
 	} else {
+		comparator_value = ePhyTimerComparatorOut0;
+		vConfigFddStop();
 		timestamp_to_start = ulNextTick + (slot_duration[scs] * max_slots_per_sfn[scs]);
 	}
 
@@ -1484,7 +1482,7 @@ static void prvVspaWarmUp()
 {
 	/* production VSPA requires slightly different handling */
 	if (!bVspaProductionBinary)
-		vConfigFddStart();
+		vConfigFddStart(0);
 
 	vPhyTimerDelay( 2 * ofdm_short_sym_time[SCS_kHz30] );
 	for (int i = 0; i < 4; i ++)

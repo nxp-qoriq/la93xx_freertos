@@ -43,12 +43,16 @@ enum eLa9310DfeTestCmdID
 {
 	TEST_HELP = 0,
 	TEST_GPIO = 1,
+#if 0
 	TEST_PHYTIMER_COUNTER = 2,
+#endif
 	TEST_BUSYDELAY_ACCURACY = 3,
 	TEST_VSPA = 4,
 	TEST_PHYTIMER_TDD = 5,
 	TEST_PHYTIMER_TDD_STOP = 6,
+#if 0
 	TEST_PHYTIMER_FDD = 7,
+#endif
 	TEST_CONFIG_PATTERN = 8,
 	TEST_CONFIG_AXIQ_LB = 9,
 	TEST_DEBUG = 10,
@@ -68,12 +72,16 @@ static const char cCmdDescriptinArr[ MAX_TEST_CMDS ][ MAX_CMD_DESCRIPTION_SIZE ]
 {
     " invokes help ( dfe help )",
     " To force set PhyTimer rf_ctl( dfe 1 <0:5> <0/1>)",
+#if 0
     " To print phy timer counter every 1s for no of. iter (dfe 2 <iter>)",
+#endif
     " To test busy delay accuracy using phy timer(dfe 3)",
     " To trigger VPSA debug breakpoint (dfe 4)",
     " To start PhyTimer TDD demo (dfe 5). Check debug var for total ticks",
     " To stop PhyTimer TDD demo (dfe 6).",
+#if 0
     " To set Tx(ch5)/Rx(ch2) Allowed for FDD (dfe 7 0/1)",
+#endif
     " To config SCS and set TDD pattern to DDDSU, S=6:4:4 (dfe 8 <scs>) ",
     " To set AXIQ loopback (dfe 9 0/1)",
     " To display debug var (dfe 10)",
@@ -132,7 +140,7 @@ static portBASE_TYPE prvDFETest( char * pcWriteBuffer,
 
 	switch( ulCmd )
 	{
-#if 1
+#if 0
 		case TEST_PHYTIMER_COUNTER:
 			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
 			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
@@ -191,7 +199,7 @@ static portBASE_TYPE prvDFETest( char * pcWriteBuffer,
 		case TEST_PHYTIMER_TDD_STOP:
             vTddStop();
 			break;
-
+#if 0
 		case TEST_PHYTIMER_FDD:
 			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
 			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
@@ -214,7 +222,7 @@ static portBASE_TYPE prvDFETest( char * pcWriteBuffer,
 			vPhyTimerComparatorForce(uTxAntennaComparator, ulTempVal2);
 			vPhyTimerComparatorForce(uRxAntennaComparator, ulTempVal2);
 			break;
-
+#endif
 		case TEST_CONFIG_PATTERN:
 			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
 			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );

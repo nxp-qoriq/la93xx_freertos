@@ -138,7 +138,7 @@ void vTraceEventShow();
 void vSetupTddPattern(uint32_t cfg_scs);
 void vVSPADebugBreakPoint();
 void prvConfigTddTask(void *pvParameters);
-void vConfigFddStart();
+void vConfigFddStart(uint32_t param);
 void vConfigFddStop();
 void vSetTimeAdvance(int32_t iVal);
 void vPhyTimerDelay(uint32_t sleep_phy_timer_ticks);
