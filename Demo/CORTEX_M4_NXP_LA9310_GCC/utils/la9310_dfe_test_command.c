@@ -43,16 +43,12 @@ enum eLa9310DfeTestCmdID
 {
 	TEST_HELP = 0,
 	TEST_GPIO = 1,
-#if 0
 	TEST_PHYTIMER_COUNTER = 2,
-#endif
 	TEST_BUSYDELAY_ACCURACY = 3,
 	TEST_VSPA = 4,
 	TEST_PHYTIMER_TDD = 5,
 	TEST_PHYTIMER_TDD_STOP = 6,
-#if 0
 	TEST_PHYTIMER_FDD = 7,
-#endif
 	TEST_CONFIG_PATTERN = 8,
 	TEST_CONFIG_AXIQ_LB = 9,
 	TEST_DEBUG = 10,
@@ -72,16 +68,12 @@ static const char cCmdDescriptinArr[ MAX_TEST_CMDS ][ MAX_CMD_DESCRIPTION_SIZE ]
 {
     " invokes help ( dfe help )",
     " To force set PhyTimer rf_ctl( dfe 1 <0:5> <0/1>)",
-#if 0
     " To print phy timer counter every 1s for no of. iter (dfe 2 <iter>)",
-#endif
     " To test busy delay accuracy using phy timer(dfe 3)",
     " To trigger VPSA debug breakpoint (dfe 4)",
     " To start PhyTimer TDD demo (dfe 5). Check debug var for total ticks",
     " To stop PhyTimer TDD demo (dfe 6).",
-#if 0
     " To set Tx(ch5)/Rx(ch2) Allowed for FDD (dfe 7 0/1)",
-#endif
     " To config SCS and set TDD pattern to DDDSU, S=6:4:4 (dfe 8 <scs>) ",
     " To set AXIQ loopback (dfe 9 0/1)",
     " To display debug var (dfe 10)",
@@ -140,7 +132,6 @@ static portBASE_TYPE prvDFETest( char * pcWriteBuffer,
 
 	switch( ulCmd )
 	{
-#if 0
 		case TEST_PHYTIMER_COUNTER:
 			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
 			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
@@ -158,7 +149,6 @@ static portBASE_TYPE prvDFETest( char * pcWriteBuffer,
 			ulTempVal4 = ulPhyTimerDiffToUS( ulTempVal3, ulPhyTimerCapture( PHY_TIMER_COMP_PA_EN ) );
 			PRINTF( "Phy timer Us passed: %d for vUDelay(%d)\r\n", ulTempVal4, 1000 );
 			break;
-#endif
 		case TEST_GPIO:
 			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
 			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
@@ -199,16 +189,16 @@ static portBASE_TYPE prvDFETest( char * pcWriteBuffer,
 		case TEST_PHYTIMER_TDD_STOP:
             vTddStop();
 			break;
-#if 0
 		case TEST_PHYTIMER_FDD:
 			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
 			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
 			PRINTF("Set TxAllowed(CH5), RxAllowed(CH2) to ");
+			ulTempVal3 = uGetPhyTimerTimestamp() + 0x96000;
 			if (ulTempVal2 != 0) {
 				ulTempVal2 = ePhyTimerComparatorOut1;
 				PRINTF("1\r\n");
 
-				vConfigFddStart();
+				vConfigFddStart(ulTempVal3);
 			}
 			else {
 				ulTempVal2 = ePhyTimerComparatorOut0;
@@ -219,10 +209,16 @@ static portBASE_TYPE prvDFETest( char * pcWriteBuffer,
 			/* delay of 2 symbols */
 			vPhyTimerDelay( 2 * ofdm_short_sym_time[SCS_kHz30]);
 
-			vPhyTimerComparatorForce(uTxAntennaComparator, ulTempVal2);
-			vPhyTimerComparatorForce(uRxAntennaComparator, ulTempVal2);
+			vPhyTimerComparatorConfig( uTxAntennaComparator,
+				PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+				ulTempVal2,
+				ulTempVal3);
+
+			vPhyTimerComparatorConfig( uRxAntennaComparator,
+				PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+				ulTempVal2,
+				ulTempVal3);
 			break;
-#endif
 		case TEST_CONFIG_PATTERN:
 			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
 			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
