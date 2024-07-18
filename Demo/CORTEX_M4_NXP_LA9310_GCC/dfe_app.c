@@ -502,7 +502,7 @@ static uint32_t prvSendVspaCmd(struct dfe_mbox *mbox_h2v, uint32_t rsp_type,
 	PRINTF("Send command to VSPA, opcode %d, msb = %#x, lsb = %#x\r\n",
 			MBOX_GET_OPCODE(*mbox_h2v), mbox_h2v->msb, mbox_h2v->lsb);
 #endif
-	if (vspa_timeout_ms > 0)
+	if ((vspa_timeout_ms != NO_WAIT) && (vspa_timeout_ms > 0))
 		prvStartVspaTimer(rsp_type, vspa_timeout_ms);
 
 	ret = vDFEMbxSend(mbox_h2v, DFE_OPS_MBOX_ID);
@@ -1369,6 +1369,7 @@ void vFddStartStop(uint32_t is_on)
 		comparator_value = ePhyTimerComparatorOut1;
 		timestamp_to_start = uGetPhyTimerTimestamp() + (slot_duration[scs] * max_slots_per_sfn[scs]);
 		/* tell VSPA to to FDD start and also the aprox number of VSPA clocks when Tx Allowed will be turned on */
+		vPhyTimerWaitComparator(timestamp_to_start - (10 * ofdm_short_sym_time[scs])); /* send the message closer to the tx_allowed on event */
 		vConfigFddStart(timestamp_to_start);
 		ulNextTick = timestamp_to_start;
 	} else {
