@@ -85,6 +85,8 @@ typedef enum {
 	TRACE_SLOT_UL,
 	TRACE_SLOT_DL,
 	TRACE_VSPA,
+	TRACE_RF_TX,
+	TRACE_RF_RX,
 	TRACE_MAX
 } eTraceEvent;
 
@@ -98,6 +100,8 @@ const char eTraceEventString[TRACE_MAX][MAX_TRACE_STRING_DESC] = {
 	"Slot_UL",
 	"Slot_DL",
 	"VspaMsg",
+	"RF_TX",
+	"RF_RX",
 };
 
 typedef struct {

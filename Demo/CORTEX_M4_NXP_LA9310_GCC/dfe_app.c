@@ -242,6 +242,9 @@ static inline void switch_txrx(uint32_t mode, uint32_t target_ts, uint32_t stop_
 							   ePhyTimerComparatorOutToggle,
 							   (rf_ctrl.issued_phytimer_ts = (uGetPhyTimerTimestamp() + 50)));
 
+	vTraceEventRecord((mode == 0xAAAAAAAA) ? TRACE_RF_TX : TRACE_RF_RX,
+						rf_ctrl.issued_phytimer_ts,
+						rf_ctrl.target_phytimer_ts);
 }
 
 #if 0
@@ -921,6 +924,10 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 										PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
 										ePhyTimerComparatorOut1,
 										rx_allowed_on );
+			// wait for prev command to complete before sending new command
+			if (tx_allowed_on_set)
+				vPhyTimerWaitComparator(tx_allowed_on);
+
 			switch_txrx(0xBBBBBBBB, rx_allowed_on, (bTimeOffsetCorrectionTickApply) ? (tick_interval[scs] - GPT3_CORRECTION_FACTOR_500US): 0);
 			vTraceEventRecord(TRACE_AXIQ_RX, 0x502, rx_allowed_on);
 			rx_allowed_on_set = 1;
