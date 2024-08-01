@@ -1379,7 +1379,7 @@ void vFddStartStop(uint32_t is_on)
 		comparator_value = ePhyTimerComparatorOut1;
 		timestamp_to_start = uGetPhyTimerTimestamp() + (slot_duration[scs] * max_slots_per_sfn[scs]);
 		/* tell VSPA to to FDD start and also the aprox number of VSPA clocks when Tx Allowed will be turned on */
-		vPhyTimerWaitComparator(timestamp_to_start - (10 * ofdm_short_sym_time[scs])); /* send the message closer to the tx_allowed on event */
+		vPhyTimerWaitComparator(timestamp_to_start - slot_duration[scs]); /* send the message closer to the tx_allowed on event */
 		vConfigFddStart(timestamp_to_start);
 		ulNextTick = timestamp_to_start;
 	} else {
