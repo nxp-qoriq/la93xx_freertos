@@ -17,28 +17,15 @@
 /* number of trace entries */
 #define MAX_TS 60
 
+/* RX antenna configuration */
+#define MAX_RX_ANT_SUPPORTED   (PHY_TIMER_COMP_CH4_RX_ALLOWED - PHY_TIMER_COMP_CH1_RX_ALLOWED + 1)
+#define MAX_RX_ANT_CONFIG      2
+
 typedef enum e_scs {
 	SCS_kHz15 = 0,
 	SCS_kHz30 = 1,
 	SCS_MAX
 } eSCS;
-
-
-// /*  __________________________________________________________________
-//  * |          |          |          |          |           |          |
-//  * | dl_slots | g1_slots | ul_slots | g2_slots | ul2_slots | g3_slots |
-//  * |__________|__________|__________|__________|___________|__________|
-//  * 
-//  */
-// typedef struct sPattern {
-// 	uint8_t dl1_slots;
-// 	uint8_t g1_slots;
-// 	uint8_t ul1_slots;
-// 	uint8_t dl2_slots;
-// 	uint8_t g2_slots;
-// 	uint8_t ul2_slots;
-// 	uint8_t pad[2];
-// } tPattern;
 
 typedef struct sSlot {
 	uint8_t is_dl;

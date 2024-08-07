@@ -64,7 +64,9 @@ static int ipc_rx_qid = BBDEV_IPC_H2M_QUEUE;
 
 /* default config */
 uint32_t uRxAntennaComparator = PHY_TIMER_COMP_CH2_RX_ALLOWED;
+uint32_t uRxAntennaComparator2 = PHY_TIMER_COMPARATOR_COUNT; /* not configured */
 const uint32_t uTxAntennaComparator = PHY_TIMER_COMP_CH5_TX_ALLOWED;
+uint32_t uRxAntennaComparatorMask = PHY_TIMER_COMP_CH2_RX_ALLOWED - 1; /* uRxAntennaComparator-1 -> ADC1 */
 uint32_t rx_addr = 0xA0000000;
 uint32_t tx_addr = 0xA0010000;
 uint32_t sym_size_128 = 35;
@@ -230,6 +232,18 @@ void vPhyTimerWaitComparator(uint32_t target)
 	}
 }
 
+static inline bool isConfigured(uint32_t comparator)
+{
+#if 0
+	if ((comparator >= PHY_TIMER_COMP_CH1_RX_ALLOWED) && (comparator <= PHY_TIMER_COMP_CH4_RX_ALLOWED))
+		return 1;
+
+	return 0;
+#else
+	return (comparator != PHY_TIMER_COMPARATOR_COUNT);
+#endif
+}
+
 /* DFE App TDD Tx/Rx switch */
 static inline void switch_txrx(uint32_t mode, uint32_t target_ts, uint32_t stop_tti)
 {
@@ -290,19 +304,42 @@ void vSetQecParam(uint32_t txrx, uint32_t mode, uint32_t idx, uint32_t value)
 	prvSendVspaCmd(&mbox_h2v, 0xDEAD, NO_TIMEOUT);
 }
 
-int iSetRxAntenna(uint32_t antenna)
+int iSetRxAntenna(uint32_t antenna_mask)
 {
-	switch (antenna) {
-		case PHY_TIMER_COMP_CH1_RX_ALLOWED:
-		case PHY_TIMER_COMP_CH2_RX_ALLOWED:
-		case PHY_TIMER_COMP_CH3_RX_ALLOWED:
-		case PHY_TIMER_COMP_CH4_RX_ALLOWED:
-			uRxAntennaComparator = antenna;
+	uint8_t iter;
+	uint8_t idx = 0;
+	uint8_t antenna;
+
+	PRINTF("antenna_mask = %#x\r\n", antenna_mask);
+	uRxAntennaComparator = PHY_TIMER_COMPARATOR_COUNT;
+	uRxAntennaComparator2 = PHY_TIMER_COMPARATOR_COUNT;
+
+	for (iter = 0; iter < MAX_RX_ANT_SUPPORTED; iter++) {
+		/* check if antenna bit is set */
+		if (!(antenna_mask & (1 << iter)))
+			continue;
+
+		/* compute actual antenna comparator value to be used further */
+		antenna = iter + PHY_TIMER_COMP_CH1_RX_ALLOWED;
+
+		if (idx >= MAX_RX_ANT_CONFIG) {
+			log_err("Max number of Rx Antennas configured is %d\r\n", MAX_RX_ANT_CONFIG);
 			break;
-		default:
-			log_err("Rx Antenna invalid config\r\n");
-			return DFE_INVALID_PARAM;
+		}
+
+		if (idx == 0) {
+			uRxAntennaComparator = antenna;
+		} else if (idx == 1) {
+			uRxAntennaComparator2 = antenna;
+		}
+
+		idx++;
 	}
+
+	PRINTF("uRxAntennaComparator  = %d\r\n", uRxAntennaComparator);
+	PRINTF("uRxAntennaComparator2 = %d\r\n", uRxAntennaComparator2);
+
+	uRxAntennaComparatorMask = antenna_mask;
 
 	return DFE_NO_ERROR;
 }
@@ -567,7 +604,7 @@ static void prvVSPAConfig(uint32_t tdd0_fdd1, int resp_mode)
 	MBOX_SET_CPE_BS_MODE(mbox_h2v, 1); /*ue*/
 	MBOX_SET_DCS_MAPPING(mbox_h2v, 1); /* adc 0,1,2,3 */
 	/* Rx ADC is 0-based */
-	MBOX_SET_RX_IDX(mbox_h2v, uRxAntennaComparator - 1);
+	MBOX_SET_RX_IDX(mbox_h2v, uRxAntennaComparatorMask);
 	/* la9310 has a single Tx - ch5. VSPA expects 0 */
 	MBOX_SET_TX_IDX(mbox_h2v, 0);
 
@@ -830,6 +867,14 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 										PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
 										ePhyTimerComparatorOut0,
 										rx_allowed_off );
+
+			if (isConfigured(uRxAntennaComparator2))
+				vPhyTimerComparatorConfig( uRxAntennaComparator2,
+											PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+											ePhyTimerComparatorOut0,
+											rx_allowed_off );
+
+
 			vTraceEventRecord(TRACE_AXIQ_RX, 0x501, rx_allowed_off);
 			rx_allowed_off_set = 0;
 			rx_allowed_on_set = 0;
@@ -924,6 +969,12 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 										PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
 										ePhyTimerComparatorOut1,
 										rx_allowed_on );
+
+			if (isConfigured(uRxAntennaComparator2))
+				vPhyTimerComparatorConfig( uRxAntennaComparator2,
+											PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+											ePhyTimerComparatorOut1,
+											rx_allowed_on );
 			// wait for prev command to complete before sending new command
 			if (tx_allowed_on_set)
 				vPhyTimerWaitComparator(tx_allowed_on);
@@ -1047,6 +1098,13 @@ update_sfn_slot:
 									PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
 									ePhyTimerComparatorOut0,
 									rx_allowed_off );
+
+			if (isConfigured(uRxAntennaComparator2))
+				vPhyTimerComparatorConfig( uRxAntennaComparator2,
+										PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+										ePhyTimerComparatorOut0,
+										rx_allowed_off );
+
 			/* do nothing to turn off RF Rx */
 			//switch_txrx(0xBBBBBBBB, rx_allowed_off, 0);
 			vTraceEventRecord(TRACE_AXIQ_RX, 0x501, rx_allowed_off);
@@ -1370,7 +1428,10 @@ void vFddStartStop(uint32_t is_on)
 
 	is_on = !!is_on;
 
-	PRINTF("Set TxAllowed(CH%d), RxAllowed(CH%d) to %d", uTxAntennaComparator - 6, uRxAntennaComparator - 0, is_on);
+	PRINTF("Set TxAllowed(CH%d), RxAllowed(CH%d)", uTxAntennaComparator - 6, uRxAntennaComparator - 0);
+	if (isConfigured(uRxAntennaComparator2))
+		PRINTF(", RxAllowed(CH%d)", uRxAntennaComparator2 - 0);
+	PRINTF(" to %d", is_on);
 
 	NVIC_SetPriority( IRQ_PPS_OUT, 1 );
 	NVIC_EnableIRQ( IRQ_PPS_OUT );
@@ -1397,6 +1458,12 @@ void vFddStartStop(uint32_t is_on)
 									PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
 									comparator_value,
 									timestamp_to_start );
+
+	if (isConfigured(uRxAntennaComparator2))
+		vPhyTimerComparatorConfig( uRxAntennaComparator2,
+										PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+										comparator_value,
+										timestamp_to_start );
 	if (is_on)
 		vPhyTimerComparatorConfig( PHY_TIMER_COMP_PPS_OUT,
 			PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
