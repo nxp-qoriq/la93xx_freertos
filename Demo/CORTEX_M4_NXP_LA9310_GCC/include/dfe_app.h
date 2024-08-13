@@ -20,6 +20,7 @@
 /* RX antenna configuration */
 #define MAX_RX_ANT_SUPPORTED   (PHY_TIMER_COMP_CH4_RX_ALLOWED - PHY_TIMER_COMP_CH1_RX_ALLOWED + 1)
 #define MAX_RX_ANT_CONFIG      2
+#define isConfigured(comp)     ((comp) != PHY_TIMER_COMPARATOR_COUNT)
 
 typedef enum e_scs {
 	SCS_kHz15 = 0,

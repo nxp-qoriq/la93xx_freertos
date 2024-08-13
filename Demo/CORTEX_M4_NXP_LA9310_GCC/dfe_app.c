@@ -232,18 +232,6 @@ void vPhyTimerWaitComparator(uint32_t target)
 	}
 }
 
-static inline bool isConfigured(uint32_t comparator)
-{
-#if 0
-	if ((comparator >= PHY_TIMER_COMP_CH1_RX_ALLOWED) && (comparator <= PHY_TIMER_COMP_CH4_RX_ALLOWED))
-		return 1;
-
-	return 0;
-#else
-	return (comparator != PHY_TIMER_COMPARATOR_COUNT);
-#endif
-}
-
 /* DFE App TDD Tx/Rx switch */
 static inline void switch_txrx(uint32_t mode, uint32_t target_ts, uint32_t stop_tti)
 {
