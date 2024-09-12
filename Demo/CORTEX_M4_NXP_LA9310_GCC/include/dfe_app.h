@@ -25,8 +25,15 @@
 typedef enum e_scs {
 	SCS_kHz15 = 0,
 	SCS_kHz30 = 1,
+	SCS_kHz60 = 2,
 	SCS_MAX
 } eSCS;
+
+typedef enum e_slot_type {
+	SLOT_EVEN = 0,
+	SLOT_ODD,
+	MAX_SLOT_TYPES
+} eSLOTTYPE;
 
 typedef struct sSlot {
 	uint8_t is_dl;
@@ -56,11 +63,6 @@ typedef struct sSlot {
 #define SLOT_GET_FIELD(word, size, shift) \
 			((word >> shift) & SLOT_MASK(size))
 #endif
-
-// typedef struct {
-// 	eSCS scs;
-// 	tPattern p;
-// } tDFEPatternConfig;
 
 /* tracing related defines & structs */
 typedef enum {
@@ -117,7 +119,7 @@ extern bool stop;
 
 extern const uint32_t ofdm_short_sym_time[];
 extern const uint32_t ofdm_long_sym_time[];
-extern const uint32_t slot_duration[];
+extern const uint32_t slot_duration[SCS_MAX][MAX_SLOT_TYPES];
 extern const uint32_t tick_interval[];
 extern uint32_t uRxAntennaComparator;
 extern const uint32_t uTxAntennaComparator;

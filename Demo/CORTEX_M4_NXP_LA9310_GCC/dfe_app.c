@@ -130,21 +130,30 @@ uint32_t rx_allowed_stop = 0;
 const uint32_t ofdm_short_sym_time[SCS_MAX] = {
 	[SCS_kHz15]  =  4384, /* 15KHz:  (2048 + 144)*2  */
 	[SCS_kHz30]  =  2192, /* 30KHz:  (2048 + 144)    */
+	[SCS_kHz60]  =  1096, /* 30KHz:  (2048 + 144)/2  */
 };
 
 const uint32_t ofdm_long_sym_time[SCS_MAX] = {
 	[SCS_kHz15]  = 4448, /* 15KHz:  (2048 + 176)*2  */
 	[SCS_kHz30]  = 2224, /* 30KHz:  (2048 + 176)    */
+	[SCS_kHz60]  = 1128, /* 60KHz:  (2048 + 208)/2  */
 };
 
-const uint32_t slot_duration[SCS_MAX] = {
-	[SCS_kHz15]  = 61440, /* PHY_TIMER_MS_1   */
-	[SCS_kHz30]  = 30720, /* PHY_TIMER_MS_0p5 */
+const uint32_t slot_duration[SCS_MAX][MAX_SLOT_TYPES] = {
+	/* even */
+	[SCS_kHz15][0] = 30720 * 2, /* 61.44MHz * 1000us */
+	[SCS_kHz30][0] = 30720,     /* 61.44MHz * 500us */
+	[SCS_kHz60][0] = 15376,     /* long_sym + short_sym * 13 */
+	/* odd */
+	[SCS_kHz15][1] = 30720 * 2, /* 61.44MHz * 1000us */
+	[SCS_kHz30][1] = 30720,     /* 61.44MHz * 500us */
+	[SCS_kHz60][1] = 15344,     /* short_sym * 14 */
 };
 
 const uint32_t tick_interval[SCS_MAX] = {
 	[SCS_kHz15]  = 30720 * 2,  /* 61.44MHz * 1000us */
 	[SCS_kHz30]  = 30720,      /* 61.44MHz * 500us */
+	[SCS_kHz60]  = 30720 / 2, /* 61.44MHz * 250us - aprox */
 };
 
 const uint32_t max_slots_per_sfn[SCS_MAX] = {
@@ -154,6 +163,7 @@ const uint32_t max_slots_per_sfn[SCS_MAX] = {
 #else
 	[SCS_kHz30]  = 20,
 #endif
+	[SCS_kHz60]  = 40,
 };
 
 #ifdef LA9310_1SEC_PPS
@@ -165,6 +175,7 @@ uint32_t ppsOutSkipCount;
 const uint32_t ppsSkipCount[SCS_MAX] = {
 	[SCS_kHz15]  = (1000 - 1),
 	[SCS_kHz30]  = (2000 - 1),
+	[SCS_kHz60]  = (4000 - 1),
 };
 #endif
 
@@ -416,13 +427,13 @@ void vPhyTimerTickConfig()
 
 	/* if frame trigger is present, use it */
 	if (0 != ulLastPpsInTimestamp) {
-		offset = (debug_timestamp - ulLastPpsInTimestamp) % (slot_duration[scs] * max_slots_per_sfn[scs]);
-		ulNextTick = debug_timestamp + slot_duration[scs] * max_slots_per_sfn[scs] - offset;
+		offset = (debug_timestamp - ulLastPpsInTimestamp) % (slot_duration[scs][0] * max_slots_per_sfn[scs]);
+		ulNextTick = debug_timestamp + slot_duration[scs][0] * max_slots_per_sfn[scs] - offset;
 	} else {
 		ulNextTick = debug_timestamp;
 	}
 
-	ulNextTick += (slot_duration[scs] * max_slots_per_sfn[scs]);
+	ulNextTick += (slot_duration[scs][0] * max_slots_per_sfn[scs]);
 	ulNextTick -= tick_interval[scs];
 
 	vPhyTimerComparatorConfig( PHY_TIMER_COMP_PPS_OUT,
@@ -430,7 +441,8 @@ void vPhyTimerTickConfig()
 			ePhyTimerComparatorOutToggle,
 			ulNextTick );
 
-	tti_trigger(ulNextTick, tick_interval[scs]);
+	/* given that odd/even slots in SCS 60kHz differ in duration, use a workaround for gerenrating periodic TTIs */
+	tti_trigger(ulNextTick, (scs == SCS_kHz60) ? (slot_duration[scs - 1][0] / 2) : slot_duration[scs][0]);
 
 	PRINTF("ulLastPpsInTimestamp = %#x\r\n" \
 	       "                 now = %#x\r\n" \
@@ -456,7 +468,7 @@ void vPhyTimerPPSOUTHandler()
 
 	if (bFddIsRunning)
 	{
-		ulNextTick += tick_interval[scs] * max_slots_per_sfn[scs];
+		ulNextTick += slot_duration[SCS_kHz30][0] * max_slots_per_sfn[SCS_kHz30]; /* 10ms */
 		vPhyTimerComparatorConfig( PHY_TIMER_COMP_PPS_OUT,
 				PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
 				ePhyTimerComparatorOutToggle,
@@ -466,7 +478,7 @@ void vPhyTimerPPSOUTHandler()
 		return;
 	}
 	/* Update next tick's timestamp */
-	ulNextTick += tick_interval[scs];
+	ulNextTick += slot_duration[scs][ulCurrentSlotInFrame % 2];
 
 	/* check if TO needs to be applied */
 	if (bApplyTimeOffsetCorrection) {
@@ -679,7 +691,7 @@ static void prvVSPALoop(void *pvParameters)
 }
 #endif
 
-static void vGetSymbolsStartStop( tSlot *slot, uint32_t is_dl, uint32_t *start_offset, uint32_t *stop_offset )
+static void vGetSymbolsStartStop( tSlot *slot, uint32_t is_dl, uint32_t *start_offset, uint32_t *stop_offset, uint32_t slot_idx )
 {
 	uint32_t start_time = 0;
 	uint32_t stop_time = 0;
@@ -690,7 +702,10 @@ static void vGetSymbolsStartStop( tSlot *slot, uint32_t is_dl, uint32_t *start_o
 
 	/* compute start time for slot */
 	if ( start_symbol > 0 ) {
-		start_time += ofdm_long_sym_time[scs];
+		if ((scs == SCS_kHz60) && ((slot_idx % MAX_SLOT_TYPES) == 1))
+			start_time += ofdm_short_sym_time[scs];
+		else
+			start_time += ofdm_long_sym_time[scs];
 		start_time += ofdm_short_sym_time[scs] * (start_symbol - 1);
 	}
 
@@ -713,10 +728,10 @@ static void vGetSymbolsStartStop( tSlot *slot, uint32_t is_dl, uint32_t *start_o
 		}
 	}
 
-	//vTraceEventRecord( (is_dl == 1) ? TRACE_SLOT_DL : TRACE_SLOT_UL, start_time, slot_duration[scs] - stop_time);
+	//vTraceEventRecord( (is_dl == 1) ? TRACE_SLOT_DL : TRACE_SLOT_UL, start_time, slot_duration[scs][slot_idx % MAX_SLOT_TYPES] - stop_time);
 
 	*start_offset = start_time;
-	*stop_offset = slot_duration[scs] - stop_time;
+	*stop_offset = slot_duration[scs][slot_idx % MAX_SLOT_TYPES] - stop_time;
 }
 
 inline void vSendTimeAgentMessage(uint32_t target_timestamp,
@@ -892,12 +907,12 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 	bIsUplinkSlot = slots[ulCurrentSlot].is_ul;
 
 	if (bIsDownlinkSlot) {
-		vGetSymbolsStartStop(&slots[ulCurrentSlot], 1 /*is_dl*/, &start_offset_dl, &stop_offset_dl);
+		vGetSymbolsStartStop(&slots[ulCurrentSlot], 1 /*is_dl*/, &start_offset_dl, &stop_offset_dl, ulCurrentSlotInFrame);
 		vTraceEventRecord(TRACE_SLOT_DL, start_offset_dl, stop_offset_dl);
 	}
 
 	if (bIsUplinkSlot) {
-		vGetSymbolsStartStop(&slots[ulCurrentSlot], 0 /*is_dl*/, &start_offset_ul, &stop_offset_ul);
+		vGetSymbolsStartStop(&slots[ulCurrentSlot], 0 /*is_dl*/, &start_offset_ul, &stop_offset_ul, ulCurrentSlotInFrame);
 		vTraceEventRecord(TRACE_SLOT_UL, start_offset_ul, stop_offset_ul);
 	}
 
@@ -905,9 +920,9 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 	// consecutive S-slots
 	if (bIsAllSPattern) {
 			rx_allowed_start = ulNextTick + start_offset_dl;
-			rx_allowed_stop = ulNextTick + stop_offset_dl - slot_duration[scs];
-			tx_allowed_start = ulNextTick - iUplinkTimeAdvance + start_offset_ul - slot_duration[scs];
-			tx_allowed_stop = ulNextTick - iUplinkTimeAdvance + stop_offset_ul + AXIQ_TAIL_LENGTH - slot_duration[scs];
+			rx_allowed_stop = ulNextTick + stop_offset_dl - slot_duration[scs][ulCurrentSlotInFrame % 2];
+			tx_allowed_start = ulNextTick - iUplinkTimeAdvance + start_offset_ul - slot_duration[scs][ulCurrentSlotInFrame % 2];
+			tx_allowed_stop = ulNextTick - iUplinkTimeAdvance + stop_offset_ul + AXIQ_TAIL_LENGTH - slot_duration[scs][ulCurrentSlotInFrame % 2];
 
 	} else {
 #endif /* DFE_CONSECUTIVE_S_SLOTS_WA */
@@ -1245,7 +1260,7 @@ void vPrintTddPattern()
 
 	PRINTF("bIsAllSPattern = %d\r\n", bIsAllSPattern);
 	PRINTF("\r\nPattern configuration: %s\r\n", bIsAllSPattern ? "consecutive S-slots": "");
-	PRINTF("\tSCS: %s\r\n", scs == SCS_kHz15 ? "15 kHz" : "30 kHz");
+	PRINTF("\tSCS: %s\r\n", scs == SCS_kHz15 ? "15 kHz" : ((scs == SCS_kHz30) ? "30 kHz": "60 kHz"));
 
 	PRINTF("\tPattern: ");
 	for (uint8_t i = 0; i < ulTotalSlots; i++) {
@@ -1433,7 +1448,7 @@ void prvConfigTdd()
 	if (bKeepTickAlive && !bTddStop && bTickConfigured) {
 		PRINTF("debug>>Tick previously configured!\r\n");
 		/* update tick time offset */
-		tti_trigger(ulNextTick, tick_interval[scs]);
+		tti_trigger(ulNextTick, (scs == SCS_kHz60) ? (slot_duration[scs - 1][0] / 2) : slot_duration[scs][0]);
 		goto config_end;
 	}
 	else PRINTF("debug>> moving fwd wth tdd config\r\n");
@@ -1534,15 +1549,15 @@ void vFddStartStop(uint32_t is_on)
 
 	if (is_on) {
 		comparator_value = ePhyTimerComparatorOut1;
-		timestamp_to_start = uGetPhyTimerTimestamp() + (slot_duration[scs] * max_slots_per_sfn[scs]);
+		timestamp_to_start = uGetPhyTimerTimestamp() + (slot_duration[scs][0] * max_slots_per_sfn[scs]);
 		/* tell VSPA to to FDD start and also the aprox number of VSPA clocks when Tx Allowed will be turned on */
-		vPhyTimerWaitComparator(timestamp_to_start - slot_duration[scs]); /* send the message closer to the tx_allowed on event */
+		vPhyTimerWaitComparator(timestamp_to_start - slot_duration[scs][0]); /* send the message closer to the tx_allowed on event */
 		vConfigFddStart(timestamp_to_start);
 		ulNextTick = timestamp_to_start;
 	} else {
 		comparator_value = ePhyTimerComparatorOut0;
 		vConfigFddStop();
-		timestamp_to_start = ulNextTick + (slot_duration[scs] * max_slots_per_sfn[scs]);
+		timestamp_to_start = ulNextTick + (slot_duration[scs][0] * max_slots_per_sfn[scs]);
 	}
 
 	vPhyTimerComparatorConfig( uTxAntennaComparator,
@@ -1850,7 +1865,15 @@ static void prvProcessRx(struct dfe_msg *msg)
 			ret = DFE_OPERATION_RUNNING;
 			break;
 		}
-		scs = (msg->payload[0] == 15) ? SCS_kHz15 : SCS_kHz30;
+
+		if (msg->payload[0] == 15)
+		 	scs = SCS_kHz15;
+		else if (msg->payload[0] == 30)
+		 	scs = SCS_kHz30;
+		else if (msg->payload[0] == 60) 
+			scs = SCS_kHz60;
+		else
+		 	scs = SCS_kHz30; // 30Khz is default
 		break;
 	case DFE_TDD_CFG_PATTERN_NEW:
 		if (!bTddStop && ulTotalTicks) {
@@ -1871,14 +1894,12 @@ static void prvProcessRx(struct dfe_msg *msg)
 		slots[slot_idx].end_symbol_dl = msg->payload[4];
 		slots[slot_idx].start_symbol_ul = msg->payload[5];
 		slots[slot_idx].end_symbol_ul = msg->payload[6];
-		//bIsAllSPattern &= (slots[slot_idx].is_dl) & (slots[slot_idx].is_ul);
-#if 1
-		PRINTF("slot[%d]: is_dl=%d, is_ul=%d, start_dl=%d, end_dl=%d, start_ul=%d, end_ul=%d, bIsAllSPattern=%d\r\n",
+#if 0
+		PRINTF("slot[%d]: is_dl=%d, is_ul=%d, start_dl=%d, end_dl=%d, start_ul=%d, end_ul=%d\r\n",
 				slot_idx,
 				slots[slot_idx].is_dl, slots[slot_idx].is_ul,
 				slots[slot_idx].start_symbol_dl, slots[slot_idx].end_symbol_dl,
-				slots[slot_idx].start_symbol_ul, slots[slot_idx].end_symbol_ul,
-				bIsAllSPattern
+				slots[slot_idx].start_symbol_ul, slots[slot_idx].end_symbol_ul
 		);
 #endif
 
