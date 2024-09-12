@@ -41,6 +41,7 @@
 
 #define TDD_SWITCH_DELAY        61 /* 1uS */
 #define TDD_SWITCH_TX_ADV       0 /* 0uS - compensated by Host/M7 TDD logic */
+#define PHYTIMER_10MS_FRAME     0x96000  /* 61.44MHz * 10000 uS */
 
 #define VSPA_SW_VER_PRODUCTION  0xDFEF0000
 
@@ -427,14 +428,14 @@ void vPhyTimerTickConfig()
 
 	/* if frame trigger is present, use it */
 	if (0 != ulLastPpsInTimestamp) {
-		offset = (debug_timestamp - ulLastPpsInTimestamp) % (slot_duration[scs][0] * max_slots_per_sfn[scs]);
-		ulNextTick = debug_timestamp + slot_duration[scs][0] * max_slots_per_sfn[scs] - offset;
+		offset = (debug_timestamp - ulLastPpsInTimestamp) % PHYTIMER_10MS_FRAME;
+		ulNextTick = debug_timestamp + PHYTIMER_10MS_FRAME - offset;
 	} else {
 		ulNextTick = debug_timestamp;
 	}
 
-	ulNextTick += (slot_duration[scs][0] * max_slots_per_sfn[scs]);
-	ulNextTick -= tick_interval[scs];
+	ulNextTick += PHYTIMER_10MS_FRAME;
+	ulNextTick -= slot_duration[scs][0];
 
 	vPhyTimerComparatorConfig( PHY_TIMER_COMP_PPS_OUT,
 			PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
@@ -1549,7 +1550,7 @@ void vFddStartStop(uint32_t is_on)
 
 	if (is_on) {
 		comparator_value = ePhyTimerComparatorOut1;
-		timestamp_to_start = uGetPhyTimerTimestamp() + (slot_duration[scs][0] * max_slots_per_sfn[scs]);
+		timestamp_to_start = uGetPhyTimerTimestamp() + PHYTIMER_10MS_FRAME;
 		/* tell VSPA to to FDD start and also the aprox number of VSPA clocks when Tx Allowed will be turned on */
 		vPhyTimerWaitComparator(timestamp_to_start - slot_duration[scs][0]); /* send the message closer to the tx_allowed on event */
 		vConfigFddStart(timestamp_to_start);
@@ -1557,7 +1558,7 @@ void vFddStartStop(uint32_t is_on)
 	} else {
 		comparator_value = ePhyTimerComparatorOut0;
 		vConfigFddStop();
-		timestamp_to_start = ulNextTick + (slot_duration[scs][0] * max_slots_per_sfn[scs]);
+		timestamp_to_start = ulNextTick + PHYTIMER_10MS_FRAME;
 	}
 
 	vPhyTimerComparatorConfig( uTxAntennaComparator,
