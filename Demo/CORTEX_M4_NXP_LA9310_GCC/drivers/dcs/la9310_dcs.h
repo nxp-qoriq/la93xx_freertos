@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright 2017, 2021 NXP
+ * Copyright 2017, 2021, 2024 NXP
  */
 
 #ifndef __DCS_H__
@@ -31,6 +31,8 @@
 #define HSDAC_RSTCTL                  ( DCS_BASE_ADDR + 0x200 )
 #define HSDAC_CFGCTL1                 ( DCS_BASE_ADDR + 0x210 )
 #define HSDAC_STAT                    ( DCS_BASE_ADDR + 0x440 )
+#define HSDAC_ERRSTAT1                ( DCS_BASE_ADDR + 0x448 )
+#define HSDAC_ERRSTAT2                ( DCS_BASE_ADDR + 0x44C )
 
 /* ADC/DAC common register */
 #define ADC_DAC_CLKCFG                ( DCS_BASE_ADDR + 0x300 )
