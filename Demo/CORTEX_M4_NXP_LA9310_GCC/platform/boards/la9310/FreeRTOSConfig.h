@@ -63,12 +63,13 @@ Set configCPU_CLOCK_HZ for 245760000
 #define configISR_STACK_SIZE              (configMINIMAL_STACK_SIZE * 5)
 #define configTOTAL_HEAP_SIZE             ((size_t)(24 * 1024))
 #define configMAX_TASK_NAME_LEN           (10)
-#define configUSE_TRACE_FACILITY          0
+#define configUSE_TRACE_FACILITY          1
 #define configUSE_16_BIT_TICKS            0
 #define configIDLE_SHOULD_YIELD           0
 #define configUSE_MUTEXES                 1
 #define configQUEUE_REGISTRY_SIZE         8
 #define configCHECK_FOR_STACK_OVERFLOW    0
+#define configRECORD_STACK_HIGH_ADDRESS   1
 #define configUSE_RECURSIVE_MUTEXES       0
 #define configUSE_MALLOC_FAILED_HOOK      0
 #define configUSE_APPLICATION_TASK_TAG    0
@@ -111,6 +112,7 @@ to exclude the API function. */
 #define INCLUDE_vTaskSuspend              1
 #define INCLUDE_vTaskDelayUntil           0
 #define INCLUDE_vTaskDelay                1
+#define INCLUDE_uiTaskStackSize           1
 
 /* Cortex-M specific definitions. */
 #ifdef __NVIC_PRIO_BITS
