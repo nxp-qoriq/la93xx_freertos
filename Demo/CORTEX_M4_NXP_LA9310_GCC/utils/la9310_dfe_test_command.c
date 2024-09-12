@@ -6,6 +6,7 @@
 
 #include "FreeRTOS.h"
 #include "task.h"
+#include "timers.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -30,6 +31,7 @@
 #include "dfe_app.h"
 #include "dfe_host_if.h"
 #include "rfnm_rf_ctrl.h"
+#include "task_stats.h"
 
 uint32_t ulEdmaDemoInfo = 0xaa55aa55;
 extern struct la9310_info * pLa9310Info;
@@ -61,6 +63,7 @@ enum eLa9310DfeTestCmdID
 	TEST_TX_TO_RX = 17,
 	TEST_TTI_TRIGGER = 18,
 	TEST_TTI_STOP = 19,
+	TEST_TASKS = 20,
 	MAX_TEST_CMDS
 };
 
@@ -85,7 +88,8 @@ static const char cCmdDescriptinArr[ MAX_TEST_CMDS ][ MAX_CMD_DESCRIPTION_SIZE ]
     " Switch Rx->Tx (dfe 16)",
     " Switch Tx->Rx (dfe 17)",
     " TTI trigger (dfe 18)",
-    " TTI stop (dfe 19)"
+    " TTI stop (dfe 19)",
+    " Dump Tasks Info (dfe 20)"
 };
 
 static portBASE_TYPE prvDFETest( char * pcWriteBuffer,
@@ -297,7 +301,7 @@ static portBASE_TYPE prvDFETest( char * pcWriteBuffer,
 			/* value - avoid using strtof causing 5K overlow in text */
 			pcParam5 = FreeRTOS_CLIGetParameter( pcCommandString, 5, &lParameterStringLength );
 			if (ulTempVal4 != MBOX_IQ_CORR_FDELAY) {
-				char *del = strtok(pcParam5, ".");
+				char *del = strtok((char *)pcParam5, ".");
 				fTempVal = strtoul(del, ( char ** ) NULL, 10 );
 				del = strtok (NULL, ".");
 				if (del) {
@@ -324,6 +328,9 @@ static portBASE_TYPE prvDFETest( char * pcWriteBuffer,
 		case TEST_TTI_STOP:
 			PRINTF("tti stop\r\n");
 			tti_stop();
+			break;
+		case TEST_TASKS:
+			vStatsUsageCommand();
 			break;
 		default:
 

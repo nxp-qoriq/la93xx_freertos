@@ -48,6 +48,7 @@ SET(CMAKE_ASM_FLAGS_DEBUG "${CMAKE_ASM_FLAGS_DEBUG}  -D__DEBUG")
 #Enable/Disable command line
 if(RFNM_DFE)
 	SET(LA9310_1SEC_PPS ON)
+	SET(LA9310_CONSECUTIVE_S_SLOTS ON)
 else()
 	SET(LA9310_TURN_ON_COMMAND_LINE ON)
 endif()
@@ -57,7 +58,11 @@ if(BOARD_RFNM)
 endif()
 
 # Enable/Disable RFIC driver
-SET(RFIC ON)
+if(RFNM_DFE)
+	SET(RFIC OFF)
+else()
+	SET(RFIC ON)
+endif()
 
 # C MACRO
 if(LA9310_TURN_ON_COMMAND_LINE)
@@ -76,6 +81,13 @@ endif()
 # C MACRO
 if(LA9310_1SEC_PPS)
     SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -D__NDEBUG -DLA9310_1SEC_PPS")
+else()
+    SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -D__NDEBUG")
+endif()
+
+# C MACRO
+if(LA9310_CONSECUTIVE_S_SLOTS)
+    SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -D__NDEBUG -DDFE_CONSECUTIVE_S_SLOTS_WA")
 else()
     SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -D__NDEBUG")
 endif()
@@ -185,6 +197,7 @@ SET(LA9310_SOURCES
     "${ProjDirPath}/drivers/timesync/sync_timing_device.c"
     "${ProjDirPath}/sw_cmd_engine/sw_cmd_engine.c"
     "${ProjDirPath}/utils/delay.c"
+    "${ProjDirPath}/utils/task_stats.c"
   )
 endif()
 
@@ -211,6 +224,7 @@ if (LA9310_DFE_APP)
      SET(LA9310_SOURCES ${LA9310_SOURCES}
         "${ProjDirPath}/dfe_avi.c"
         "${ProjDirPath}/dfe_app.c"
+        "${ProjDirPath}/rfnm_rf_ctrl.c"
       )
      if(LA9310_TURN_ON_COMMAND_LINE)
          SET(LA9310_SOURCES ${LA9310_SOURCES}

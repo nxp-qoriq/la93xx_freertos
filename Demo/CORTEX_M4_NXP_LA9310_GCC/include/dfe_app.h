@@ -15,7 +15,7 @@
 #define MAX_TRACE_STRING_DESC 8
 
 /* number of trace entries */
-#define MAX_TS 60
+#define MAX_TS 200
 
 /* RX antenna configuration */
 #define MAX_RX_ANT_SUPPORTED   (PHY_TIMER_COMP_CH4_RX_ALLOWED - PHY_TIMER_COMP_CH1_RX_ALLOWED + 1)

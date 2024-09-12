@@ -7,6 +7,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
+#include "timers.h"
 #include "common.h"
 #include "immap.h"
 #include "la9310_main.h"
@@ -15,10 +16,8 @@
 #include "core_cm4.h"
 #include "la9310_edmaAPI.h"
 #include "bbdev_ipc.h"
-#include "rfic_api.h"
 #include "sync_timing_device.h"
 #include "math.h"
-#include "rfic_api.h"
 #include "phytimer.h"
 #include <time.h>
 #include "dfe_avi.h"
@@ -28,6 +27,7 @@
 #include "../drivers/avi/la9310_vspa_dma.h"
 #include "../drivers/avi/la9310_avi_ds.h"
 #include "rfnm_rf_ctrl.h"
+#include "task_stats.h"
 
 /* VSPA timeouts */
 #define NO_WAIT                 ~0
@@ -111,6 +111,7 @@ static volatile bool bTimeOffsetCorrectionTickApply = pdFALSE;
 static volatile bool bApplySfnSlotUpdate = pdFALSE;
 static volatile bool bSfnSlotUpdateIsDelta = pdFALSE;
 static volatile bool bTddIsStopped = pdFALSE;
+static volatile bool bIsAllSPattern = pdFALSE;
 int32_t sfn_update;
 int32_t slot_update;
 
@@ -148,7 +149,11 @@ const uint32_t tick_interval[SCS_MAX] = {
 
 const uint32_t max_slots_per_sfn[SCS_MAX] = {
 	[SCS_kHz15]  = 10,
+#if DFE_TICK_DEBUG
+	[SCS_kHz30]  = 4,
+#else
 	[SCS_kHz30]  = 20,
+#endif
 };
 
 #ifdef LA9310_1SEC_PPS
@@ -213,9 +218,10 @@ void vPhyTimerWaitComparator(uint32_t target)
 
     /* Check if the target is actually in the past */
      if ((target - init_phy_timer_value) >= (UINT32_MAX / 2)) {
- 		vTraceEventRecord(TRACE_PHYTIMER, 0xAAAAAAAA, target);
- 		return;
- 	}
+		vTraceEventRecord(TRACE_PHYTIMER, 0xAAAA1111, target);
+		return;
+	}
+	vTraceEventRecord(TRACE_PHYTIMER, 0xAAAA2222, target);
 
 	/* the target is in the future, wait... */
 	if (exit_phy_timer_value >= init_phy_timer_value) {
@@ -750,48 +756,7 @@ uint32_t rx_allowed_off = 0;
 bool_t rx_allowed_on_set = 0;
 bool_t rx_allowed_off_set = 0;
 uint32_t tx_axiq_tail = 0;
-
-#if 0 /* future */
-enum ue_states {
-	UE_IDLE = 0,
-	UE_CELL_SEARCH,
-	UE_CELL_ATTACHED,
-	UE_CELL_LOST,
-	UE_MAX_STATES
-} ue_state_machine = UE_IDLE;
-
-/* future API: puts app into cell search mode */
-void vCellSearchStart(uint32_t start_offset)
-{
-	UNUSED(start_offset);
-
-	PRINTF("Cell search start !\r\n");
-
-	/* send VSPA config */
-	prvVSPAConfig(0/*tdd*/, NO_TIMEOUT);
-
-	/* reset all counters for easy debugging */
-	ulTotalTicks = 0;
-	ulVspaMsgCnt = 0;
-
-	/* next incremnet will turn these into 0 */
-	ulCurrentSfn = 1024;
-	ulCurrentSlotInFrame = max_slots_per_sfn[scs];
-
-	ue_state_machine = UE_CELL_SEARCH;
-
-	/* configure tick interval and setup PhyTimer */
-	vPhyTimerTickConfig();
-}
-
-/* future API */
-void vCellSearchStop()
-{
-	PRINTF("Cell search stop !\r\n");
-}
-
-tSlot cell_search_dl_slot;
-#endif
+bool_t first604 = 0;
 
 static void prvTick( void *pvParameters, long unsigned int param1 )
 {
@@ -926,21 +891,45 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 	bIsDownlinkSlot = slots[ulCurrentSlot].is_dl;
 	bIsUplinkSlot = slots[ulCurrentSlot].is_ul;
 
-	//vTraceEventRecord(TRACE_SLOT, ulPhyTimerComparatorGetStatus(uTxAntennaComparator), ulPhyTimerComparatorGetStatus(uRxAntennaComparator));
-
 	if (bIsDownlinkSlot) {
 		vGetSymbolsStartStop(&slots[ulCurrentSlot], 1 /*is_dl*/, &start_offset_dl, &stop_offset_dl);
 		vTraceEventRecord(TRACE_SLOT_DL, start_offset_dl, stop_offset_dl);
-		rx_allowed_start = ulNextTick + start_offset_dl;
-		rx_allowed_stop = ulNextTick + stop_offset_dl;
 	}
 
 	if (bIsUplinkSlot) {
 		vGetSymbolsStartStop(&slots[ulCurrentSlot], 0 /*is_dl*/, &start_offset_ul, &stop_offset_ul);
 		vTraceEventRecord(TRACE_SLOT_UL, start_offset_ul, stop_offset_ul);
-		tx_allowed_start = ulNextTick - iUplinkTimeAdvance + start_offset_ul;
-		tx_allowed_stop = ulNextTick - iUplinkTimeAdvance + stop_offset_ul + AXIQ_TAIL_LENGTH;
 	}
+
+#ifdef DFE_CONSECUTIVE_S_SLOTS_WA
+	// consecutive S-slots
+	if (bIsAllSPattern) {
+			rx_allowed_start = ulNextTick + start_offset_dl;
+			rx_allowed_stop = ulNextTick + stop_offset_dl - slot_duration[scs];
+			tx_allowed_start = ulNextTick - iUplinkTimeAdvance + start_offset_ul - slot_duration[scs];
+			tx_allowed_stop = ulNextTick - iUplinkTimeAdvance + stop_offset_ul + AXIQ_TAIL_LENGTH - slot_duration[scs];
+
+	} else {
+#endif /* DFE_CONSECUTIVE_S_SLOTS_WA */
+		if (rx_allowed_off_set) {
+			vPhyTimerComparatorConfig( uRxAntennaComparator,
+										PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+										ePhyTimerComparatorOut1,
+										rx_allowed_stop );
+		}
+
+		if (bIsDownlinkSlot) {
+			rx_allowed_start = ulNextTick + start_offset_dl;
+			rx_allowed_stop = ulNextTick + stop_offset_dl;
+		}
+
+		if (bIsUplinkSlot) {
+			tx_allowed_start = ulNextTick - iUplinkTimeAdvance + start_offset_ul;
+			tx_allowed_stop = ulNextTick - iUplinkTimeAdvance + stop_offset_ul + AXIQ_TAIL_LENGTH;
+		}
+#ifdef DFE_CONSECUTIVE_S_SLOTS_WA
+	}
+#endif /* DFE_CONSECUTIVE_S_SLOTS_WA */
 
 	if (bTimeOffsetCorrectionApplied) {
 		tx_allowed_stop -= iTimeOffsetCorrToApply;
@@ -949,64 +938,110 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 		bTimeOffsetCorrectionTickApply = pdTRUE;
 	}
 
-	if (bIsDownlinkSlot) {
-		if (!rx_allowed_on_set) {
-			rx_allowed_on = rx_allowed_start;
+#ifdef DFE_CONSECUTIVE_S_SLOTS_WA
+	if (bIsAllSPattern) {
+		tx_allowed_off = tx_allowed_stop;
+		rx_allowed_off = rx_allowed_stop;
+		tx_allowed_on = tx_allowed_start;
+		rx_allowed_on = rx_allowed_start;
 
+		// At this step RxAllow OFF and TxAllowed ON
+		if (rx_allowed_off_set) {
 			vPhyTimerComparatorConfig( uRxAntennaComparator,
 										PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
-										ePhyTimerComparatorOut1,
-										rx_allowed_on );
+										ePhyTimerComparatorOut0,
+										rx_allowed_off );
 
 			if (isConfigured(uRxAntennaComparator2))
 				vPhyTimerComparatorConfig( uRxAntennaComparator2,
 											PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
-											ePhyTimerComparatorOut1,
-											rx_allowed_on );
-			// wait for prev command to complete before sending new command
-			if (tx_allowed_on_set)
-				vPhyTimerWaitComparator(tx_allowed_on);
-
-			switch_txrx(0xBBBBBBBB, rx_allowed_on, (bTimeOffsetCorrectionTickApply) ? (tick_interval[scs] - GPT3_CORRECTION_FACTOR_500US): 0);
-			vTraceEventRecord(TRACE_AXIQ_RX, 0x502, rx_allowed_on);
-			rx_allowed_on_set = 1;
-			bTimeOffsetCorrectionTickApply = pdFALSE;
+											ePhyTimerComparatorOut0,
+											rx_allowed_off );
+			vTraceEventRecord(TRACE_AXIQ_RX, 0x501, rx_allowed_off);
 		}
 
-		rx_allowed_off = rx_allowed_stop;
-		rx_allowed_off_set = 1;
-
-		if (slots[ulCurrentSlot].end_symbol_dl < (MAX_SYMBOLS - 1) ) {
-			rx_allowed_on_set = 0;
-		}
-	}
-
-	if (bIsUplinkSlot) {
-		if (!tx_allowed_on_set) {
-			tx_allowed_on = tx_allowed_start;
-
+		if (tx_allowed_on_set) {
 			vPhyTimerComparatorConfig( uTxAntennaComparator,
 										PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
 										ePhyTimerComparatorOut1,
 										tx_allowed_on );
-			switch_txrx(0xAAAAAAAA, tx_allowed_on - TDD_SWITCH_TX_ADV, 0);
 			vTraceEventRecord(TRACE_AXIQ_TX, 0x602, tx_allowed_on);
-			tx_allowed_on_set = 1;
+
+			/* avoid potential issue in M7 TDD Tx/Rx switch code*/
+			if (rx_allowed_off_set)
+				vPhyTimerWaitComparator(rx_allowed_off);
+
+			switch_txrx(0xAAAAAAAA, tx_allowed_on - TDD_SWITCH_TX_ADV, 0);
 		}
 
-		tx_allowed_off = tx_allowed_stop;
-
-		/* A-011354: Tx allowed length is expected to be: (TX_window_size_in_bytes+255)/256 * 256) */
-		tx_axiq_tail = ((tx_allowed_off - tx_allowed_on + 63)/64) * 64 - tx_allowed_off + tx_allowed_on;
-		vTraceEventRecord(TRACE_AXIQ_TX, 0x603, tx_axiq_tail);
-
-		tx_allowed_off += tx_axiq_tail;
+		rx_allowed_off_set = 1;
 		tx_allowed_off_set = 1;
-
-		if (slots[ulCurrentSlot].end_symbol_ul < (MAX_SYMBOLS - 1) ) {
-			tx_allowed_on_set = 0;
-		}
+		tx_allowed_on_set = 1;
+		rx_allowed_on_set = 1;
 	}
+	else {
+#endif /* DFE_CONSECUTIVE_S_SLOTS_WA */
+		if (bIsDownlinkSlot) {
+			if (!rx_allowed_on_set) {
+				rx_allowed_on = rx_allowed_start;
+
+				vPhyTimerComparatorConfig( uRxAntennaComparator,
+											PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+											ePhyTimerComparatorOut1,
+											rx_allowed_on );
+
+				if (isConfigured(uRxAntennaComparator2))
+					vPhyTimerComparatorConfig( uRxAntennaComparator2,
+												PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+												ePhyTimerComparatorOut1,
+												rx_allowed_on );
+				// wait for prev command to complete before sending new command
+				if (tx_allowed_on_set)
+					vPhyTimerWaitComparator(tx_allowed_on);
+
+				switch_txrx(0xBBBBBBBB, rx_allowed_on, (bTimeOffsetCorrectionTickApply) ? (tick_interval[scs] - GPT3_CORRECTION_FACTOR_500US): 0);
+				vTraceEventRecord(TRACE_AXIQ_RX, 0x502, rx_allowed_on);
+				rx_allowed_on_set = 1;
+				bTimeOffsetCorrectionTickApply = pdFALSE;
+			}
+
+			rx_allowed_off = rx_allowed_stop;
+			rx_allowed_off_set = 1;
+
+			if (slots[ulCurrentSlot].end_symbol_dl < (MAX_SYMBOLS - 1) ) {
+				rx_allowed_on_set = 0;
+			}
+		}
+
+		if (bIsUplinkSlot) {
+			if (!tx_allowed_on_set) {
+				tx_allowed_on = tx_allowed_start;
+
+				vPhyTimerComparatorConfig( uTxAntennaComparator,
+											PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+											ePhyTimerComparatorOut1,
+											tx_allowed_on );
+				switch_txrx(0xAAAAAAAA, tx_allowed_on - TDD_SWITCH_TX_ADV, 0);
+				vTraceEventRecord(TRACE_AXIQ_TX, 0x602, tx_allowed_on);
+				tx_allowed_on_set = 1;
+			}
+
+			tx_allowed_off = tx_allowed_stop;
+
+			/* A-011354: Tx allowed length is expected to be: (TX_window_size_in_bytes+255)/256 * 256) */
+			tx_axiq_tail = ((tx_allowed_off - tx_allowed_on + 63)/64) * 64 - tx_allowed_off + tx_allowed_on;
+			vTraceEventRecord(TRACE_AXIQ_TX, 0x603, tx_axiq_tail);
+
+			tx_allowed_off += tx_axiq_tail;
+			tx_allowed_off_set = 1;
+
+			if (slots[ulCurrentSlot].end_symbol_ul < (MAX_SYMBOLS - 1) ) {
+				tx_allowed_on_set = 0;
+			}
+		}
+#ifdef DFE_CONSECUTIVE_S_SLOTS_WA
+	}
+#endif /* DFE_CONSECUTIVE_S_SLOTS_WA */
 
 	/* VSPA messaging */
 	memset(&mbox_h2v, 0, sizeof(struct dfe_mbox));
@@ -1031,11 +1066,24 @@ static void prvTick( void *pvParameters, long unsigned int param1 )
 		MBOX_SET_TX_START_SYM(mbox_h2v, slots[ulCurrentSlot].start_symbol_ul);
 		MBOX_SET_TX_NR_SYM(mbox_h2v, slots[ulCurrentSlot].end_symbol_ul - slots[ulCurrentSlot].start_symbol_ul + 1);
 
-		/* tell VSPA the time when Tx Allowed will be enabled */
-		if (tx_allowed_on == tx_allowed_start) {
-			MBOX_SET_PARAM2(mbox_h2v, (tx_allowed_on - uGetPhyTimerTimestamp())*491/61);
-			vTraceEventRecord(TRACE_AXIQ_TX, 0x604, MBOX_GET_PARAM2(mbox_h2v));
+#ifdef DFE_CONSECUTIVE_S_SLOTS_WA
+		// consecutive S slots
+		if (bIsAllSPattern) {
+			/* exploit this condition to avoid sending the first message*/
+			if (first604) {
+				MBOX_SET_PARAM2(mbox_h2v, (tx_allowed_on - uGetPhyTimerTimestamp())*491/61);
+				vTraceEventRecord(TRACE_AXIQ_TX, 0x604, MBOX_GET_PARAM2(mbox_h2v));
+			}
+		} else {
+#endif /* DFE_CONSECUTIVE_S_SLOTS_WA */
+			/* tell VSPA the time when Tx Allowed will be enabled */
+			if (tx_allowed_on == tx_allowed_start) {
+				MBOX_SET_PARAM2(mbox_h2v, (tx_allowed_on - uGetPhyTimerTimestamp())*491/61);
+				vTraceEventRecord(TRACE_AXIQ_TX, 0x604, MBOX_GET_PARAM2(mbox_h2v));
+			}
+#ifdef DFE_CONSECUTIVE_S_SLOTS_WA
 		}
+#endif /* DFE_CONSECUTIVE_S_SLOTS_WA */
 	}
 
 	prvSendVspaCmd(&mbox_h2v, 0xDEAD, NO_WAIT);
@@ -1077,50 +1125,97 @@ update_sfn_slot:
 	if (bTddIsStopped && bKeepTickAlive)
 		goto tick_end;
 
-	if (!bIsDownlinkSlot) {
-		if (rx_allowed_off_set) {
-			if (rx_allowed_on_set)
-				vPhyTimerWaitComparator(rx_allowed_start);
+#ifdef DFE_CONSECUTIVE_S_SLOTS_WA
+	if (bIsAllSPattern) {
+		// At this step RxAllowed ON and TxAllowed OFF
+		if (rx_allowed_on_set) {
+			if (rx_allowed_off_set)
+				vPhyTimerWaitComparator(rx_allowed_off);
 
 			vPhyTimerComparatorConfig( uRxAntennaComparator,
-									PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
-									ePhyTimerComparatorOut0,
-									rx_allowed_off );
+										PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+										ePhyTimerComparatorOut1,
+										rx_allowed_on );
 
 			if (isConfigured(uRxAntennaComparator2))
 				vPhyTimerComparatorConfig( uRxAntennaComparator2,
+											PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+											ePhyTimerComparatorOut1,
+											rx_allowed_on );
+			vTraceEventRecord(TRACE_AXIQ_RX, 0x10000502, rx_allowed_on);
+		}
+
+		if (tx_allowed_off_set && first604) {
+			/* A-011354: Tx allowed length is expected to be: (TX_window_size_in_bytes+255)/256 * 256) */
+			tx_axiq_tail = ((tx_allowed_off - tx_allowed_on + 63)/64) * 64 - tx_allowed_off + tx_allowed_on;
+			vTraceEventRecord(TRACE_AXIQ_TX, 0x603, tx_axiq_tail);
+			tx_allowed_off += tx_axiq_tail;
+			if (tx_allowed_on_set)
+				vPhyTimerWaitComparator(tx_allowed_on);
+
+			vPhyTimerComparatorConfig( uTxAntennaComparator,
+										PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+										ePhyTimerComparatorOut0,
+										tx_allowed_off );
+			/* RF Tx->Rx here; Also use this command to update TTI boundary */
+			switch_txrx(0xBBBBBBBB, tx_allowed_off - tx_axiq_tail, (bTimeOffsetCorrectionTickApply) ? (tick_interval[scs] - GPT3_CORRECTION_FACTOR_500US): 0);
+			vTraceEventRecord(TRACE_AXIQ_TX, 0x10000601, tx_allowed_off);
+		}
+
+		rx_allowed_on = rx_allowed_start;
+		tx_allowed_off = tx_allowed_stop;
+		rx_allowed_on_set = 1;
+		tx_allowed_off_set = 1;
+		first604 = 1;
+	} else {
+#endif /* DFE_CONSECUTIVE_S_SLOTS_WA */
+		if (!bIsDownlinkSlot) {
+			if (rx_allowed_off_set) {
+				if (rx_allowed_on_set)
+					vPhyTimerWaitComparator(rx_allowed_start);
+
+				vPhyTimerComparatorConfig( uRxAntennaComparator,
 										PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
 										ePhyTimerComparatorOut0,
 										rx_allowed_off );
 
-			/* do nothing to turn off RF Rx */
-			//switch_txrx(0xBBBBBBBB, rx_allowed_off, 0);
-			vTraceEventRecord(TRACE_AXIQ_RX, 0x501, rx_allowed_off);
-			rx_allowed_off_set = 0;
+				if (isConfigured(uRxAntennaComparator2))
+					vPhyTimerComparatorConfig( uRxAntennaComparator2,
+											PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+											ePhyTimerComparatorOut0,
+											rx_allowed_off );
+
+				/* do nothing to turn off RF Rx */
+				//switch_txrx(0xBBBBBBBB, rx_allowed_off, 0);
+				vTraceEventRecord(TRACE_AXIQ_RX, 0x501, rx_allowed_off);
+				rx_allowed_off_set = 0;
+			}
+
+			rx_allowed_on_set = 0;
 		}
 
-		rx_allowed_on_set = 0;
-	}
+		if (!bIsUplinkSlot) {
+			if (tx_allowed_off_set) {
+				if (tx_allowed_on_set)
+					vPhyTimerWaitComparator(tx_allowed_start);
 
-	if (!bIsUplinkSlot) {
-		if (tx_allowed_off_set) {
-			if (tx_allowed_on_set)
-				vPhyTimerWaitComparator(tx_allowed_start);
+				vPhyTimerComparatorConfig( uTxAntennaComparator,
+										PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+										ePhyTimerComparatorOut0,
+										tx_allowed_off );
+				/* turn Rx on to stop the RF Tx */
+				switch_txrx(0xBBBBBBBB, tx_allowed_off - tx_axiq_tail, 0);
+				vTraceEventRecord(TRACE_AXIQ_TX, 0x601, tx_allowed_off);
+				tx_allowed_off_set = 0;
+			}
 
-			vPhyTimerComparatorConfig( uTxAntennaComparator,
-									PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
-									ePhyTimerComparatorOut0,
-									tx_allowed_off );
-			/* turn Rx on to stop the RF Tx */
-			switch_txrx(0xBBBBBBBB, tx_allowed_off - TDD_SWITCH_DELAY - tx_axiq_tail, 0);
-			vTraceEventRecord(TRACE_AXIQ_TX, 0x601, tx_allowed_off);
-			tx_allowed_off_set = 0;
+			tx_allowed_on_set = 0;
 		}
-
-		tx_allowed_on_set = 0;
+#ifdef DFE_CONSECUTIVE_S_SLOTS_WA
 	}
+#endif /* DFE_CONSECUTIVE_S_SLOTS_WA */
 
-#if 0 //TODO: enable for debugging
+#if DFE_TICK_DEBUG
 	/* DEBUG: add stop condition after end of pattern */
 	if ( ulTotalTicks > ulTotalSlots )
 	if (ulTotalTicks && (ulCurrentSlot == 0))
@@ -1130,7 +1225,6 @@ update_sfn_slot:
 tick_end:
 	vTraceEventRecord(TRACE_TICK, 0xEEEEEEEE, ulNextTick);
 }
-
 
 void dump_slots()
 {
@@ -1149,7 +1243,8 @@ void vPrintTddPattern()
 	PRINTF("\ttx_addr  = 0x%08x, tx_syms_num = %d\r\n", tx_addr, tx_sym_nr);
 	PRINTF("\tsym_size = %d (%d * 128 bytes)\r\n", sym_size_128 * 128, sym_size_128);
 
-	PRINTF("\r\nPattern configuration:\r\n");
+	PRINTF("bIsAllSPattern = %d\r\n", bIsAllSPattern);
+	PRINTF("\r\nPattern configuration: %s\r\n", bIsAllSPattern ? "consecutive S-slots": "");
 	PRINTF("\tSCS: %s\r\n", scs == SCS_kHz15 ? "15 kHz" : "30 kHz");
 
 	PRINTF("\tPattern: ");
@@ -1322,6 +1417,14 @@ void prvConfigTdd()
 		return;
 	}
 
+	/* determine a particular consecutive S-slot configuration */
+	bIsAllSPattern = 1;
+	for (uint8_t i = 0; i < ulTotalSlots; i++) {
+		bIsAllSPattern = bIsAllSPattern & (slots[i].is_dl & slots[i].is_ul);
+		PRINTF("[%d] bIsAllSPattern = %d\r\n", i, bIsAllSPattern);
+	}
+
+	PRINTF("bIsAllSPattern = %d\r\n", bIsAllSPattern);
 	vPrintTddPattern();
 
 	PRINTF("debug>>bKeepTickAlive=%d, bTddStop=%d, bTickConfigured=%d\r\n", bKeepTickAlive, bTddStop, bTickConfigured);
@@ -1347,7 +1450,12 @@ void prvConfigTdd()
 	ulCurrentSlotInFrame = max_slots_per_sfn[scs];
 
 	/* Initialize UL Time Advance */
-	iUplinkTimeAdvance	= iNtaOffset + iNtaMax;
+#ifdef DFE_TICK_DEBUG
+	iUplinkTimeAdvance = 0;
+#else
+	iUplinkTimeAdvance = iNtaOffset + iNtaMax;
+#endif /* DFE_TICK_DEBUG */
+
 	/* configure tick interval and setup PhyTimer */
 	vPhyTimerTickConfig();
 
@@ -1763,13 +1871,14 @@ static void prvProcessRx(struct dfe_msg *msg)
 		slots[slot_idx].end_symbol_dl = msg->payload[4];
 		slots[slot_idx].start_symbol_ul = msg->payload[5];
 		slots[slot_idx].end_symbol_ul = msg->payload[6];
-
-#if 0
-		PRINTF("slot[%d]: is_dl=%d, is_ul=%d, start_dl=%d, end_dl=%d, start_ul=%d, end_ul=%d\r\n",
+		//bIsAllSPattern &= (slots[slot_idx].is_dl) & (slots[slot_idx].is_ul);
+#if 1
+		PRINTF("slot[%d]: is_dl=%d, is_ul=%d, start_dl=%d, end_dl=%d, start_ul=%d, end_ul=%d, bIsAllSPattern=%d\r\n",
 				slot_idx,
 				slots[slot_idx].is_dl, slots[slot_idx].is_ul,
 				slots[slot_idx].start_symbol_dl, slots[slot_idx].end_symbol_dl,
-				slots[slot_idx].start_symbol_ul, slots[slot_idx].end_symbol_ul
+				slots[slot_idx].start_symbol_ul, slots[slot_idx].end_symbol_ul,
+				bIsAllSPattern
 		);
 #endif
 
@@ -1800,8 +1909,19 @@ static void prvProcessRx(struct dfe_msg *msg)
 	case DFE_CFG_AXIQ_LB_DISABLE:
 		vAxiqLoopbackSet(0);
 		break;
-	case DFE_VSPA_DEBUG_BP:
-		vVSPADebugBreakPoint();
+	case DFE_DEBUG_CMD:
+		switch (msg->payload[0]) {
+			case 1:
+				dump_slots();
+				vTraceEventShow();
+				break;
+			case 2:
+				vStatsUsageCommand();
+				break;
+			default:
+				vVSPADebugBreakPoint();
+			break;
+		}
 		break;
 	case DFE_CFG_QEC_PARAM:
 		vSetQecParam(msg->payload[0], /* tx/rx */
