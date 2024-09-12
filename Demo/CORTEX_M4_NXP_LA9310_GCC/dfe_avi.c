@@ -6,6 +6,7 @@
 
 #include "dfe_avi.h"
 #include "la9310_avi.h"
+#include "la9310_error_codes.h"
 
 int vDFEMbxSend(struct dfe_mbox *h2v, uint32_t mbox_id)
 {

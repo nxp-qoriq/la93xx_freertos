@@ -5,6 +5,7 @@
  */
 
 #include <phytimer.h>
+#include "timers.h"
 
 #define PHY_TIMER_DIVISOR_MASK    0x3F
 

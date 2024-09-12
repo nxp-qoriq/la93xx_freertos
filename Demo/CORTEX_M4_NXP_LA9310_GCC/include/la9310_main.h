@@ -7,6 +7,7 @@
 #ifndef __LA9310_MAIN_H__
 #define __LA9310_MAIN_H__
 
+#include "FreeRTOS.h"
 #include "la9310_host_if.h"
 #include "immap.h"
 #include "core_cm4.h"
