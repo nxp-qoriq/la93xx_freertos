@@ -6,7 +6,7 @@
 #define __LA9310_HOST_V2H_IF_H__
 
 /* Enable V2H application support */
-#ifndef RFNM
+#if !defined(RFNM) && !defined(LA9310_DFE_APP)
 #define NLM_ENABLE_V2H
 #endif
 
@@ -14,7 +14,7 @@
 //#define DEBUG_V2H_TEST
 
 /* Enable RUN_V2H_TEST_APP on FreeRTOS */
-#ifndef RFNM
+#if !defined(RFNM) && !defined(LA9310_DFE_APP)
 #define RUN_V2H_TEST_APP
 #endif
 
