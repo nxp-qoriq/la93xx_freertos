@@ -27,6 +27,7 @@
 #include <sw_cmd_engine.h>
 #include "la9310_v2h_if.h"
 #include "drivers/avi/la9310_vspa_dma.h"
+#include <la9310_avi.h>
 #include "drivers/avi/la9310_avi_ds.h"
 #include <la9310_dcs_api.h>
 
