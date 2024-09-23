@@ -135,7 +135,7 @@ const uint32_t ofdm_short_sym_time[SCS_MAX] = {
 };
 
 const uint32_t ofdm_long_sym_time[SCS_MAX] = {
-	[SCS_kHz15]  = 4448, /* 15KHz:  (2048 + 176)*2  */
+	[SCS_kHz15]  = 4416, /* 15KHz:  (2048 + 160)*2  */
 	[SCS_kHz30]  = 2224, /* 30KHz:  (2048 + 176)    */
 	[SCS_kHz60]  = 1128, /* 60KHz:  (2048 + 208)/2  */
 };
