@@ -266,6 +266,7 @@ struct la9310_hif {
 	uint32_t iq_phys_addr;
 	uint32_t iq_mem_addr;
 	uint32_t iq_mem_size;
+	uint32_t modem_rf_data_size;
 	struct irq_evt_regs irq_evt_regs;
 	struct debug_log_regs dbg_log_regs;
 	struct la9310_stats stats;

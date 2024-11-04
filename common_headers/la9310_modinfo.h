@@ -49,6 +49,7 @@ typedef struct modinfo {
 	modinfo_addrmap_t pciwin;
 	modinfo_addrmap_t scratchbuf;
 	modinfo_addrmap_t iqflood;
+	modinfo_addrmap_t rfcal;
 	int dac_mask;
 	int adc_mask;
 	int adc_rate_mask;
