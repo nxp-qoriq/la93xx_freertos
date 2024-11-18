@@ -60,6 +60,9 @@ endif()
 if(BOARD_RFNM)
     SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -DRFNM")
 endif()
+if(BOARD_SEEVE)
+	SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -DSEEVE")
+endif()
 
 # Enable/Disable RFIC driver
 if(RFNM_DFE)
@@ -209,7 +212,7 @@ SET(LA9310_SOURCES ${LA9310_SOURCES}
     "${ProjDirPath}/drivers/dcs/la9310_dcs.c"
    )
 
-if(BOARD_RFNM)
+if(BOARD_RFNM OR BOARD_SEEVE)
     SET(LA9310_SOURCES ${LA9310_SOURCES}
          "${ProjDirPath}/tti_gpio12_test.c"
        )

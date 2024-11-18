@@ -15,7 +15,7 @@ file_name="la9310.bin"
 show_help()
 {
        echo "Usage: ./$1 -t <target_model> -l <log_level> -b <build_variant> -m <boot_mode> -f <features> -n <file_name>"
-       echo "       target_model = {nlm, rfnm, rfnm_nxp, rfnm_dfe, nmm}"
+       echo "       target_model = {nlm, rfnm, rfnm_nxp, rfnm_dfe, seeve, nmm}"
        echo "       log_level = {err, info, dbg, isr, all}"
        echo "       build_variant = {debug, release}"
        echo "       boot_mode = {i2c, pcie}"
@@ -50,7 +50,7 @@ show_help
 exit 0
 fi
 
-if [ "$target_model" != "rfnm" -a "$target_model" != "nlm" -a "$target_model" != "rfnm_nxp" -a "$target_model" != "rfnm_dfe" ]
+if [ "$target_model" != "rfnm" -a "$target_model" != "nlm" -a "$target_model" != "rfnm_nxp" -a "$target_model" != "rfnm_dfe"  -a "$target_model" != "seeve" ]
 then
 show_help
 exit 0
@@ -85,6 +85,12 @@ then
 	build_flags=" -DBOARD_RFNM=ON $build_flags"
 else
 	build_flags=" -DBOARD_RFNM=OFF $build_flags"
+fi
+if [ "$target_model" = "seeve" ]
+then
+	build_flags=" -DBOARD_SEEVE=ON $build_flags"
+else
+	build_flags=" -DBOARD_SEEVE=OFF $build_flags"
 fi
 if [ "$target_model" == "rfnm_dfe" ];then
 	build_flags=" -DRFNM_DFE=ON $build_flags"

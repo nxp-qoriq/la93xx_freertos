@@ -171,7 +171,7 @@ void vRficCoreTask( void * pvParameters )
 				      RF_CORE_TASK_EVENT_MASK,
 				      pdTRUE,  //Clear all the events before returning
 				      pdFALSE, //Any event should make this API return
-#ifdef RFNM
+#if defined(RFNM) || defined(SEEVE)
 				      1 ); //portMAX_DELAY
 #else
 				      portMAX_DELAY );

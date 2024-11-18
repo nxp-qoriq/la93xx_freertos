@@ -355,7 +355,7 @@ int iInitHandler ( void )
 
     ulMemLogIndex = 0;
 
-#if !defined(LA9310_DFE_APP) && !defined(RFNM)
+#if !defined(LA9310_DFE_APP) && !defined(RFNM) && !defined(SEEVE)
     /* Let PhyTimer control RFCTL[] GPIOs  */
     iGpioInitRFIC();
 #endif

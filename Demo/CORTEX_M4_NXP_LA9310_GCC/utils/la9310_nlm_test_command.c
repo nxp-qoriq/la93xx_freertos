@@ -68,7 +68,7 @@ enum eLa9310TestCmdID
 #ifdef TURN_ON_STANDALONE_MODE
     TEST_CRC=19,
 #endif
-#ifdef RFNM
+#if defined (RFNM) || defined (SEEVE)
     TEST_RX_TO_TX = 20,
     TEST_TX_TO_RX = 21,
     TEST_TTI_START = 22,
