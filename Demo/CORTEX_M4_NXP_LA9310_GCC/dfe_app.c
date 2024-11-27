@@ -1587,6 +1587,52 @@ void vFddStartStop(uint32_t is_on)
 	bFddIsRunning = is_on;
 }
 
+void vFddStartStopAllPaths(uint32_t is_on, uint32_t delta)
+{
+	uint32_t comparator_value;
+
+	is_on = !!is_on;
+
+	PRINTF("vFddStartStopAllPaths: on=%d, delta=%d\r\n", is_on, delta);
+
+	NVIC_SetPriority( IRQ_PPS_OUT, 1 );
+	NVIC_EnableIRQ( IRQ_PPS_OUT );
+
+	if (is_on) {
+		comparator_value = ePhyTimerComparatorOut1;
+		timestamp_to_start = uGetPhyTimerTimestamp() + PHYTIMER_10MS_FRAME;
+		/* tell VSPA to to FDD start and also the aprox number of VSPA clocks when Tx Allowed will be turned on */
+		vPhyTimerWaitComparator(timestamp_to_start - slot_duration[scs][0]); /* send the message closer to the tx_allowed on event */
+		vConfigFddStart(timestamp_to_start);
+		ulNextTick = timestamp_to_start;
+	} else {
+		comparator_value = ePhyTimerComparatorOut0;
+		vConfigFddStop();
+		timestamp_to_start = ulNextTick + PHYTIMER_10MS_FRAME;
+	}
+
+	vPhyTimerComparatorConfig( uTxAntennaComparator,
+									PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+									comparator_value,
+									timestamp_to_start );
+
+	for (uint32_t i = 0; i < 4; i++)
+		vPhyTimerComparatorConfig( PHY_TIMER_COMP_CH1_RX_ALLOWED + i,
+									PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+									comparator_value,
+									timestamp_to_start + delta * (i+1));
+
+	if (is_on)
+		vPhyTimerComparatorConfig( PHY_TIMER_COMP_PPS_OUT,
+			PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,
+			ePhyTimerComparatorOutToggle,
+			timestamp_to_start );
+	else
+		vPhyTimerComparatorDisable( PHY_TIMER_COMP_PPS_OUT );
+
+	bFddIsRunning = is_on;
+}
+
 int iBenchmarkVspaTest(uint32_t size, uint32_t mode, uint32_t parallel_dma, uint32_t iterations, uint32_t *gbits, uint32_t *mbits)
 {
 	struct dfe_mbox mbox_h2v, mbox_v2h;
@@ -1860,6 +1906,12 @@ static void prvProcessRx(struct dfe_msg *msg)
 		break;
 	case DFE_FDD_STOP:
 		vFddStartStop(0);
+		break;
+	case DFE_FDD_ALL_PATHS_START:
+		vFddStartStopAllPaths(1, msg->payload[0]);
+		break;
+	case DFE_FDD_ALL_PATHS_STOP:
+		vFddStartStopAllPaths(0, msg->payload[0]);
 		break;
 	case DFE_CFG_SCS:
 		if (!bTddStop && ulTotalTicks) {
