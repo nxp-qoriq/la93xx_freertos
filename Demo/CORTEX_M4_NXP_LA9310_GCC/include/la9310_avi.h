@@ -30,7 +30,16 @@
 #define MSG_IN_0_VALID                  ( 1 << 2 )
 #define DBGGNCR                         0xE00800EC
 
-#define SET_AXIQ_LOOPBACK_MASK          0x0000005e
+/* DCFG_DCSR_DBGGENCR1 */
+#define EN_TX_RX0_LPBK                  ( 1 << 1 )
+#define EN_TX_RX1_LPBK                  ( 1 << 2 )
+#define EN_TX_OBS0_LPBK                 ( 1 << 3 )
+#define EN_TX_OBS1_LPBK                 ( 1 << 4 )
+#define EN_TX_TXDET_LPBK                ( 1 << 5 )
+#define EN_TX_READY_LPBK                ( 1 << 6 )
+
+#define SET_AXIQ_LOOPBACK_MASK          ( EN_TX_READY_LPBK )
+#define SET_AXIQ_LOOPBACK_MASK_ALL      ( EN_TX_READY_LPBK | EN_TX_RX0_LPBK | EN_TX_RX1_LPBK | EN_TX_OBS0_LPBK | EN_TX_OBS1_LPBK )
 #define REMOVE_AXIQ_LOOPBACK_MASK       0xffffffa1
 
 
@@ -90,7 +99,7 @@ void * iLa9310AviHandle();
  *
  * @return : NULL
  */
-void vAxiqLoopbackSet( bool );
+void vAxiqLoopbackSet( bool, uint32_t );
 
 int iLa9310AviConfig( void );
 

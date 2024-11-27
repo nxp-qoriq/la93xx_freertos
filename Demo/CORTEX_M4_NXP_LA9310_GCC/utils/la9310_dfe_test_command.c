@@ -233,7 +233,7 @@ static portBASE_TYPE prvDFETest( char * pcWriteBuffer,
 		case TEST_CONFIG_AXIQ_LB:
 			pcParam2 = FreeRTOS_CLIGetParameter( pcCommandString, 2, &lParameterStringLength );
 			ulTempVal2 = strtoul( pcParam2, ( char ** ) NULL, 10 );
-			vAxiqLoopbackSet(ulTempVal2);
+			vAxiqLoopbackSet(ulTempVal2, SET_AXIQ_LOOPBACK_MASK_ALL);
 			PRINTF("Setting AXIQ Loopback for CH2(RX1) to %s\r\n", ulTempVal2 ? "Enabled" : "Disabled");
 			break;
 

@@ -580,10 +580,12 @@ void iLa9310VspaInit( void )
     log_dbg( "%s: Out\n\r", __func__ );
 }
 
-void vAxiqLoopbackSet( bool bLoopbackEnable )
+void vAxiqLoopbackSet( bool bLoopbackEnable, uint32_t rx_mask )
 {
 	if (bLoopbackEnable)
-		OUT_32( DBGGNCR, ( SET_AXIQ_LOOPBACK_MASK | IN_32( DBGGNCR ) ) );
+		OUT_32( DBGGNCR, ( ( SET_AXIQ_LOOPBACK_MASK | rx_mask ) | IN_32( DBGGNCR ) ) );
 	else
 		OUT_32( DBGGNCR, ( REMOVE_AXIQ_LOOPBACK_MASK & IN_32( DBGGNCR ) ) );
+
+	log_dbg( "%s: IN_32( DBGGNCR ) = %#x\r\n", __func__, IN_32( DBGGNCR ) );
 }

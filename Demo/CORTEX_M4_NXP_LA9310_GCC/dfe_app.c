@@ -1978,10 +1978,16 @@ static void prvProcessRx(struct dfe_msg *msg)
 		tx_sym_nr = msg->payload[0];
 		break;
 	case DFE_CFG_AXIQ_LB_ENABLE:
-		vAxiqLoopbackSet(1);
+		/* shift the mask to left, thus matching DCFG_DCSR_DBGGENCR1 reg mapping */
+		if (msg->payload[0] == 0) {
+			/* special case where all paths will be enabled; keep backward compatibility with old logic */
+			vAxiqLoopbackSet(1, 0xF << 1);
+		} else {
+			vAxiqLoopbackSet(1, msg->payload[0] << 1);
+		}
 		break;
 	case DFE_CFG_AXIQ_LB_DISABLE:
-		vAxiqLoopbackSet(0);
+		vAxiqLoopbackSet(0, 0);
 		break;
 	case DFE_DEBUG_CMD:
 		switch (msg->payload[0]) {
