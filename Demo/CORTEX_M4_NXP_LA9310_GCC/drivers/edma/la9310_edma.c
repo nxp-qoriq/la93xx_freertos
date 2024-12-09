@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2017, 2021 NXP
+ * Copyright 2017, 2021, 2024 NXP
  */
 
 
@@ -127,7 +127,8 @@ int iEdmaXferReq( uint32_t src_addr,
                 TCD_ELINKYES_ELINK_DIS |
                 EDMA_TCD_BITER_ELINKYES_BITER |
                 EDMA_TCD_CSR_START );
-        pStats->la9310_eDMA_ch[ pEdmaCh->channel_id ].no_callback_reg++;
+	    if (pEdmaCh->channel_id < LA9310_eDMA_CHANNELS)
+		    pStats->la9310_eDMA_ch[ pEdmaCh->channel_id ].no_callback_reg++;
     }
     else
     {
@@ -138,7 +139,8 @@ int iEdmaXferReq( uint32_t src_addr,
                 EDMA_TCD_CSR_INTMJR );
     }
 
-    if( pEdmaCh->channel_id != WDOG_eDMA_CHANNEL )
+    if( pEdmaCh->channel_id != WDOG_eDMA_CHANNEL &&
+    	pEdmaCh->channel_id < LA9310_eDMA_CHANNELS)
     {
         pStats->la9310_eDMA_ch[ pEdmaCh->channel_id ].xfer_req++;
     }
