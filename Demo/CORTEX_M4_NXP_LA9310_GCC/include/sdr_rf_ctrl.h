@@ -1,11 +1,11 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2024 NXP
+ * Copyright 2024-2025 NXP
  */
 
-#ifndef __RFNM_RF_CTRL_H__
-#define __RFNM_RF_CTRL_H__
+#ifndef __SDR_RF_CTRL_H__
+#define __SDR_RF_CTRL_H__
 
 
 #define PHYTIMER_500_US_61p44 	30720

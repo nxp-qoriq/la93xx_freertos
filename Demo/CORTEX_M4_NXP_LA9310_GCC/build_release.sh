@@ -1,10 +1,10 @@
 #!/bin/bash
 #SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
-#Copyright 2022-2024 NXP
+#Copyright 2022-2025 NXP
 set -x
 
 # Initialize our own variables:
-target_model="rfnm"
+target_model="sdr"
 boot_mode="pcie"
 log_level="info"
 build_variant="release"
@@ -15,7 +15,7 @@ file_name="la9310.bin"
 show_help()
 {
        echo "Usage: ./$1 -t <target_model> -l <log_level> -b <build_variant> -m <boot_mode> -f <features> -n <file_name>"
-       echo "       target_model = {nlm, rfnm, rfnm_nxp, rfnm_dfe, seeve, nmm}"
+       echo "       target_model = {nlm, sdr, sdr_nxp, sdr_dfe, seeve, nmm}"
        echo "       log_level = {err, info, dbg, isr, all}"
        echo "       build_variant = {debug, release}"
        echo "       boot_mode = {i2c, pcie}"
@@ -50,7 +50,7 @@ show_help
 exit 0
 fi
 
-if [ "$target_model" != "rfnm" -a "$target_model" != "nlm" -a "$target_model" != "rfnm_nxp" -a "$target_model" != "rfnm_dfe"  -a "$target_model" != "seeve" ]
+if [ "$target_model" != "sdr" -a "$target_model" != "nlm" -a "$target_model" != "sdr_nxp" -a "$target_model" != "sdr_dfe"  -a "$target_model" != "seeve" ]
 then
 show_help
 exit 0
@@ -80,11 +80,11 @@ else
 	echo "#define TURN_ON_STANDALONE_MODE  1" > $file
 fi
 
-if [ "$target_model" = "rfnm" ]
+if [ "$target_model" = "sdr" ]
 then
-	build_flags=" -DBOARD_RFNM=ON $build_flags"
+	build_flags=" -DBOARD_SDR=ON $build_flags"
 else
-	build_flags=" -DBOARD_RFNM=OFF $build_flags"
+	build_flags=" -DBOARD_SDR=OFF $build_flags"
 fi
 if [ "$target_model" = "seeve" ]
 then
@@ -92,10 +92,10 @@ then
 else
 	build_flags=" -DBOARD_SEEVE=OFF $build_flags"
 fi
-if [ "$target_model" == "rfnm_dfe" ];then
-	build_flags=" -DRFNM_DFE=ON $build_flags"
+if [ "$target_model" == "sdr_dfe" ];then
+	build_flags=" -DSDR_DFE=ON $build_flags"
 else
-	build_flags=" -DRFNM_DFE=OFF $build_flags"
+	build_flags=" -DSDR_DFE=OFF $build_flags"
 fi
 if [ -n "$file_name" ];then
 	build_flags=" -DFILE_NAME=$file_name $build_flags"

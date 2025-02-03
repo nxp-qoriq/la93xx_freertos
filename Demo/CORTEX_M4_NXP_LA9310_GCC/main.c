@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2017-2024 NXP
+ * Copyright 2017-2025 NXP
  */
 
 #include "FreeRTOS.h"
@@ -355,7 +355,7 @@ int iInitHandler ( void )
 
     ulMemLogIndex = 0;
 
-#if !defined(LA9310_DFE_APP) && !defined(RFNM) && !defined(SEEVE)
+#if !defined(LA9310_DFE_APP) && !defined(SDR) && !defined(SEEVE)
     /* Let PhyTimer control RFCTL[] GPIOs  */
     iGpioInitRFIC();
 #endif

@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2024 NXP
+ * Copyright 2024-2025 NXP
  */
 
 #include "FreeRTOS.h"
@@ -30,7 +30,7 @@
 #include "dfe_vspa_mbox.h"
 #include "dfe_app.h"
 #include "dfe_host_if.h"
-#include "rfnm_rf_ctrl.h"
+#include "sdr_rf_ctrl.h"
 #include "task_stats.h"
 
 uint32_t ulEdmaDemoInfo = 0xaa55aa55;

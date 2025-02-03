@@ -1,12 +1,12 @@
 /* SPDX-License-Identifier: (BSD-3-Clause OR GPL-2.0)
- * Copyright 2017-2024 NXP
+ * Copyright 2017-2025 NXP
  */
 
 #ifndef __LA9310_HOST_V2H_IF_H__
 #define __LA9310_HOST_V2H_IF_H__
 
 /* Enable V2H application support */
-#if !defined(RFNM) && !defined(LA9310_DFE_APP) && !defined(SEEVE)
+#if !defined(SDR) && !defined(LA9310_DFE_APP) && !defined(SEEVE)
 #define NLM_ENABLE_V2H
 #endif
 
@@ -14,7 +14,7 @@
 //#define DEBUG_V2H_TEST
 
 /* Enable RUN_V2H_TEST_APP on FreeRTOS */
-#if !defined(RFNM) && !defined(LA9310_DFE_APP) && !defined(SEEVE)
+#if !defined(SDR) && !defined(LA9310_DFE_APP) && !defined(SEEVE)
 #define RUN_V2H_TEST_APP
 #endif
 

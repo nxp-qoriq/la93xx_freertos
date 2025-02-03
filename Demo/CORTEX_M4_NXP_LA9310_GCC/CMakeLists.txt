@@ -1,5 +1,5 @@
 #SPDX-License-Identifier: BSD-3-Clause
-#Copyright 2017-2024 NXP
+#Copyright 2017-2025 NXP
 
 INCLUDE(CMakeForceCompiler)
 INCLUDE(CMakeDependentOption)
@@ -50,22 +50,22 @@ SET(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} -g  -mcpu=
 SET(CMAKE_ASM_FLAGS_DEBUG "${CMAKE_ASM_FLAGS_DEBUG}  -D__DEBUG")
 
 #Enable/Disable command line
-if(RFNM_DFE)
+if(SDR_DFE)
 	SET(LA9310_1SEC_PPS ON)
 	SET(LA9310_CONSECUTIVE_S_SLOTS ON)
 else()
 	SET(LA9310_TURN_ON_COMMAND_LINE ON)
 endif()
 
-if(BOARD_RFNM)
-    SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -DRFNM")
+if(BOARD_SDR)
+    SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -DSDR")
 endif()
 if(BOARD_SEEVE)
 	SET(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE}  -DSEEVE")
 endif()
 
 # Enable/Disable RFIC driver
-if(RFNM_DFE)
+if(SDR_DFE)
 	SET(RFIC OFF)
 else()
 	SET(RFIC ON)
@@ -212,7 +212,7 @@ SET(LA9310_SOURCES ${LA9310_SOURCES}
     "${ProjDirPath}/drivers/dcs/la9310_dcs.c"
    )
 
-if(BOARD_RFNM OR BOARD_SEEVE)
+if(BOARD_SDR OR BOARD_SEEVE)
     SET(LA9310_SOURCES ${LA9310_SOURCES}
          "${ProjDirPath}/tti_gpio12_test.c"
        )
@@ -231,7 +231,7 @@ if (LA9310_DFE_APP)
      SET(LA9310_SOURCES ${LA9310_SOURCES}
         "${ProjDirPath}/dfe_avi.c"
         "${ProjDirPath}/dfe_app.c"
-        "${ProjDirPath}/rfnm_rf_ctrl.c"
+        "${ProjDirPath}/sdr_rf_ctrl.c"
       )
      if(LA9310_TURN_ON_COMMAND_LINE)
          SET(LA9310_SOURCES ${LA9310_SOURCES}
@@ -253,7 +253,7 @@ if(RFIC)
         "${ProjDirPath}/drivers/rfic/rfic_demod.c"
         "${ProjDirPath}/drivers/rfic/rfic_cmd.c"
         "${ProjDirPath}/drivers/rfic/rfic_dac.c"
-	"${ProjDirPath}/rfnm_rf_ctrl.c"
+	"${ProjDirPath}/sdr_rf_ctrl.c"
         )
 endif()
 

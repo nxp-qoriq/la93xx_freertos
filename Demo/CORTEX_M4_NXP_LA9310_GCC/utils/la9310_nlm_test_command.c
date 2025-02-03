@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2021-2024 NXP
+ * Copyright 2021-2025 NXP
  */
 
 /* FreeRTOS includes. */
@@ -68,7 +68,7 @@ enum eLa9310TestCmdID
 #ifdef TURN_ON_STANDALONE_MODE
     TEST_CRC=19,
 #endif
-#if defined (RFNM) || defined (SEEVE)
+#if defined (SDR) || defined (SEEVE)
     TEST_RX_TO_TX = 20,
     TEST_TX_TO_RX = 21,
     TEST_TTI_START = 22,
@@ -91,7 +91,7 @@ enum eLa9310TestCmdID
     };
 #endif
 
-#ifdef RFNM
+#ifdef SDR
 extern void vTickMachineStart(uint32_t period);
 extern void vTickMachineStop();
 #endif
@@ -124,7 +124,7 @@ static const char cCmdDescriptinArr[ MAX_TEST_CMDS ][ MAX_CMD_DESCRIPTION_SIZE ]
     " To verify vspa table (test 18)",
     " To verify CRC of images (test 19)",
 #endif
-#ifdef RFNM
+#ifdef SDR
     " Switch Rx->Tx (test 20)",
     " Switch Tx->Rx (test 21)",
     " TTI start (test 22)",
@@ -445,7 +445,7 @@ static portBASE_TYPE prvNLMTest( char * pcWriteBuffer,
 			vLa9310VerifyCRC();
 			break;
 		#endif //TURN_ON_STANDALONE_MODE
-		#ifdef RFNM
+		#ifdef SDR
 		case TEST_RX_TO_TX:
 			switch_rf(0xAAAAAAAA);
 			break;

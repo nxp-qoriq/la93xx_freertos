@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2024 NXP
+ * Copyright 2024-2025 NXP
  */
 
 #include "FreeRTOS.h"
@@ -20,7 +20,7 @@
 #include "rfic_api.h"
 #include "phytimer.h"
 #include <time.h>
-#include "rfnm_rf_ctrl.h"
+#include "sdr_rf_ctrl.h"
 
 uint32_t ulLastPpsInTimestamp = 0;
 static uint32_t ulNextTick;

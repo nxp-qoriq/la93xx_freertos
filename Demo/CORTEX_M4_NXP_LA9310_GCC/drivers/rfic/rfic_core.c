@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright 2021-2024 NXP
+ * Copyright 2021-2025 NXP
  */
 #include "rfic_core.h"
 #include "debug_console.h"
@@ -171,7 +171,7 @@ void vRficCoreTask( void * pvParameters )
 				      RF_CORE_TASK_EVENT_MASK,
 				      pdTRUE,  //Clear all the events before returning
 				      pdFALSE, //Any event should make this API return
-#if defined(RFNM) || defined(SEEVE)
+#if defined(SDR) || defined(SEEVE)
 				      1 ); //portMAX_DELAY
 #else
 				      portMAX_DELAY );
@@ -203,7 +203,7 @@ void vRficCoreTask( void * pvParameters )
 	}
 	else
 	{
-#ifndef RFNM
+#ifndef SDR
 	    log_err( "%s: Invalid com event.\n\r", __func__ );
 #else
 	    struct avi_hndlr *avihndl = NULL;

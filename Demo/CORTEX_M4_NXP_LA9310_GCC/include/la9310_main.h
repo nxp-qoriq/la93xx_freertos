@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2017, 2021-2024 NXP
+ * Copyright 2017, 2021-2025 NXP
  */
 
 #ifndef __LA9310_MAIN_H__
@@ -125,8 +125,8 @@ typedef enum la9310_mbx_opcode
     VSPA_FW_IMAGE_BASE_OFFSET,
     TX_DC_CORRECTION,
     RX_DC_CORRECTION,
-    RFNM_SET_CHANNEL,
-    RFNM_IQ_IMBALANCE
+    SDR_SET_CHANNEL,
+    SDR_IQ_IMBALANCE
 } la9310_mbx_opcode_t;
 
 struct la9310_msi_info

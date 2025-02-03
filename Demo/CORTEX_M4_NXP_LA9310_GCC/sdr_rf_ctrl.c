@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2024 NXP
+ * Copyright 2024-2025 NXP
  */
 
 #include "FreeRTOS.h"
@@ -9,7 +9,7 @@
 #include "core_cm4.h"
 #include "phytimer.h"
 
-#include "rfnm_rf_ctrl.h"
+#include "sdr_rf_ctrl.h"
 #include "la9310_dcs.h"
 
 volatile rf_ctrl_s rf_ctrl __attribute__((section(".rfctrl")));
@@ -29,7 +29,7 @@ void switch_rf(uint32_t mode)
 	else
 		rf_ctrl.tti_period_ts = (PHYTIMER_500_US_61p44 * 2) - GPT3_CORRECTION_FACTOR_500US;
 
-#ifndef RFNM_CHECK_ALIGNMENT
+#ifndef SDR_CHECK_ALIGNMENT
 
 vPhyTimerComparatorConfig( PHY_TIMER_COMP_RFCTL_5,
 					PHY_TIMER_COMPARATOR_CLEAR_INT | PHY_TIMER_COMPARATOR_CROSS_TRIG,

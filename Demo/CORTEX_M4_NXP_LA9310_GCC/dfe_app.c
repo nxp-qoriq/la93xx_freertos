@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 
 /*
- * Copyright 2024 NXP
+ * Copyright 2024-2025 NXP
  */
 
 #include "FreeRTOS.h"
@@ -26,7 +26,7 @@
 #include "la9310_avi.h"
 #include "../drivers/avi/la9310_vspa_dma.h"
 #include "../drivers/avi/la9310_avi_ds.h"
-#include "rfnm_rf_ctrl.h"
+#include "sdr_rf_ctrl.h"
 #include "task_stats.h"
 
 /* VSPA timeouts */

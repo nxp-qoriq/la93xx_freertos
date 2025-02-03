@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: BSD-3-Clause */
 /*
- * Copyright 2021-2024 NXP
+ * Copyright 2021-2025 NXP
  */
 #include "rfic_cmd.h"
 #include "rfic_synth.h"
@@ -380,7 +380,7 @@ void vRficSetIqImbalance(rf_sw_cmd_desc_t *rfic_sw_cmd)
 
     cmd_data = ((struct sw_cmddata_dump_iq *)rfic_sw_cmd->data);
 
-    mbox_h2v.ctrl.op_code = RFNM_IQ_IMBALANCE;
+    mbox_h2v.ctrl.op_code = SDR_IQ_IMBALANCE;
     //mbox_h2v.ctrl.start_stop = cmd_data->start_stop;
     //mbox_h2v.ctrl.bandwidth = 0;
     mbox_h2v.ctrl.rcvr = 0;
@@ -425,7 +425,7 @@ void vRficSetChannel(rf_sw_cmd_desc_t *rfic_sw_cmd)
 
     cmd_data = ((struct sw_cmddata_dump_iq *)rfic_sw_cmd->data);
 
-    mbox_h2v.ctrl.op_code = RFNM_SET_CHANNEL;
+    mbox_h2v.ctrl.op_code = SDR_SET_CHANNEL;
     //mbox_h2v.ctrl.start_stop = cmd_data->start_stop;
     //mbox_h2v.ctrl.bandwidth = 0;
     mbox_h2v.ctrl.rcvr = 0;
